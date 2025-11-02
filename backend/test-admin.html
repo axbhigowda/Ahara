@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ahara - Admin Panel Test</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 10px;
+            padding: 30px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+        }
+        h1 { color: #667eea; margin-bottom: 30px; text-align: center; }
+        h2 { color: #495057; margin-bottom: 15px; font-size: 18px; }
+        h3 { color: #6c757d; margin: 20px 0 10px 0; font-size: 16px; }
+        .section {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; }
+        .stat-card {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .stat-card h3 { margin: 0 0 10px 0; color: #667eea; font-size: 14px; text-transform: uppercase; }
+        .stat-card .value { font-size: 32px; font-weight: bold; color: #495057; }
+        .form-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; color: #495057; font-weight: 500; font-size: 14px; }
+        input, select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ced4da;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+        button {
+            background: #667eea;
+            color: white;
+            padding: 12px 30px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.3s;
+            margin-right: 10px;
+            margin-top: 10px;
+        }
+        button:hover { background: #5568d3; transform: translateY(-2px); }
+        button.danger { background: #dc3545; }
+        button.danger:hover { background: #c82333; }
+        button.success { background: #28a745; }
+        button.success:hover { background: #218838; }
+        .response {
+            margin-top: 20px;
+            padding: 15px;
+            background: #fff;
+            border-left: 4px solid #28a745;
+            border-radius: 5px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            white-space: pre-wrap;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .response.error { border-left-color: #dc3545; background: #fff5f5; }
+        .restaurant-card, .order-card, .customer-card {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            border-left: 4px solid #667eea;
+        }
+        .badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+            margin-left: 8px;
+        }
+        .badge-active { background: #d4edda; color: #155724; }
+        .badge-pending { background: #fff3cd; color: #856404; }
+        .badge-inactive { background: #f8d7da; color: #721c24; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>👨‍💼 Ahara - Admin Panel</h1>
+        
+        <div class="section">
+            <h2>🔑 Admin Login</h2>
+            <div class="grid" style="grid-template-columns: 1fr 1fr;">
+                <div>
+                    <div class="form-group">
+                        <label>Email</label>
+                        <input type="email" id="admin-email" value="admin@ahara.com">
+                    </div>
+                    <div class="form-group">
+                        <label>Password</label>
+                        <input type="password" id="admin-password" value="admin123">
+                    </div>
+                    <button onclick="adminLogin()">Login as Admin</button>
+                </div>
+                <div class="form-group">
+                    <label>Admin Token</label>
+                    <input type="text" id="admin-token" placeholder="Token will appear here after login">
+                </div>
+            </div>
+            <div id="login-response" class="response" style="display:none"></div>
+        </div>
+
+        <div class="section">
+            <h2>📊 Platform Statistics</h2>
+            <button onclick="getPlatformStats()">Refresh Stats</button>
+            <div id="stats-grid" class="grid" style="margin-top: 20px;"></div>
+            <div id="stats-response" class="response" style="display:none"></div>
+        </div>
+
+        <div class="section">
+            <h2>🏪 Restaurant Management</h2>
+            <h3>View Restaurants</h3>
+            <div class="form-group">
+                <label>Filter by Status</label>
+                <select id="restaurant-status-filter">
+                    <option value="">All Restaurants</option>
+                    <option value="pending">Pending Approval</option>
+                    <option value="active">Active</option>
+                </select>
+            </div>
+            <button onclick="getAllRestaurants()">Get Restaurants</button>
+            <div id="restaurants-response" class="response" style="display:none"></div>
+            <div id="restaurants-list"></div>
+        </div>
+
+        <div class="section">
+            <h2>📋 All Orders</h2>
+            <div class="form-group">
+                <label>Filter by Status</label>
+                <select id="order-status-filter">
+                    <option value="">All Orders</option>
+                    <option value="pending">Pending</option>
+                    <option value="confirmed">Confirmed</option>
+                    <option value="preparing">Preparing</option>
+                    <option value="delivered">Delivered</option>
+                </select>
+            </div>
+            <button onclick="getAllOrders()">Get All Orders</button>
+            <div id="orders-response" class="response" style="display:none"></div>
+            <div id="orders-list"></div>
+        </div>
+
+        <div class="section">
+            <h2>👥 Customer Management</h2>
+            <button onclick="getAllCustomers()">Get All Customers</button>
+            <div id="customers-response" class="response" style="display:none"></div>
+            <div id="customers-list"></div>
+        </div>
+
+        <div class="section">
+            <h2>🚴 Delivery Partner Management</h2>
+            <div class="form-group">
+                <label>Filter by Status</label>
+                <select id="delivery-status-filter">
+                    <option value="">All Partners</option>
+                    <option value="pending">Pending Approval</option>
+                    <option value="active">Active</option>
+                </select>
+            </div>
+            <button onclick="getAllDeliveryPartners()">Get Delivery Partners</button>
+            <div id="delivery-partners-response" class="response" style="display:none"></div>
+            <div id="delivery-partners-list"></div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:5000/api';
+        
+        function displayResponse(elementId, data, isError = false) {
+            const el = document.getElementById(elementId);
+            el.style.display = 'block';
+            el.className = isError ? 'response error' : 'response';
+            el.textContent = JSON.stringify(data, null, 2);
+        }
+
+        async function adminLogin() {
+            try {
+                const response = await fetch(`${API_BASE}/admin/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        email: document.getElementById('admin-email').value,
+                        password: document.getElementById('admin-password').value
+                    })
+                });
+                const data = await response.json();
+                displayResponse('login-response', data, !response.ok);
+                
+                if (data.data && data.data.token) {
+                    document.getElementById('admin-token').value = data.data.token;
+                    alert('✅ Admin logged in successfully!');
+                    getPlatformStats();
+                }
+            } catch (error) {
+                displayResponse('login-response', { error: error.message }, true);
+            }
+        }
+
+        async function getPlatformStats() {
+            const token = document.getElementById('admin-token').value;
+            if (!token) {
+                alert('Please login first!');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE}/admin/stats`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await response.json();
+                displayResponse('stats-response', data, !response.ok);
+
+                if (data.status === 'success') {
+                    const stats = data.data.overview;
+                    document.getElementById('stats-grid').innerHTML = `
+                        <div class="stat-card">
+                            <h3>Total Users</h3>
+                            <div class="value">${stats.totalUsers}</div>
+                        </div>
+                        <div class="stat-card">
+                            <h3>Total Restaurants</h3>
+                            <div class="value">${stats.totalRestaurants}</div>
+                        </div>
+                        <div class="stat-card">
+                            <h3>Active Restaurants</h3>
+                            <div class="value">${stats.activeRestaurants}</div>
+                        </div>
+                        <div class="stat-card">
+                            <h3>Pending Approval</h3>
+                            <div class="value">${stats.pendingRestaurants}</div>
+                        </div>
+                        <div class="stat-card">
+                            <h3>Total Orders</h3>
+                            <div class="value">${stats.totalOrders}</div>
+                        </div>
+                        <div class="stat-card">
+                            <h3>Total Revenue</h3>
+                            <div class="value">₹${stats.totalRevenue}</div>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                displayResponse('stats-response', { error: error.message }, true);
+            }
+        }
+
+        async function getAllRestaurants() {
+            const token = document.getElementById('admin-token').value;
+            const status = document.getElementById('restaurant-status-filter').value;
+            
+            if (!token) {
+                alert('Please login first!');
+                return;
+            }
+
+            try {
+                let url = `${API_BASE}/admin/restaurants`;
+                if (status) url += `?status=${status}`;
+
+                const response = await fetch(url, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await response.json();
+                displayResponse('restaurants-response', data, !response.ok);
+
+                const listDiv = document.getElementById('restaurants-list');
+                if (data.status === 'success' && data.data.length > 0) {
+                    listDiv.innerHTML = '<h3 style="margin-top: 15px;">Restaurants:</h3>';
+                    data.data.forEach(r => {
+                        const statusBadge = r.is_active ? 
+                            '<span class="badge badge-active">Active</span>' : 
+                            '<span class="badge badge-pending">Pending</span>';
+                        
+                        listDiv.innerHTML += `
+                            <div class="restaurant-card">
+                                <h4>${r.name} ${statusBadge}</h4>
+                                <p><strong>Email:</strong> ${r.email} | <strong>Phone:</strong> ${r.phone}</p>
+                                <p><strong>City:</strong> ${r.city} | <strong>Cuisine:</strong> ${r.cuisine_type}</p>
+                                <p><strong>Orders:</strong> ${r.total_orders || 0} | <strong>Revenue:</strong> ₹${r.total_revenue || 0}</p>
+                                <small>Joined: ${new Date(r.created_at).toLocaleDateString()}</small><br>
+                                ${r.is_active ? 
+                                    `<button class="danger" onclick="deactivateRestaurant('${r.id}')">Deactivate</button>` : 
+                                    `<button class="success" onclick="approveRestaurant('${r.id}')">Approve</button>`
+                                }
+                            </div>
+                        `;
+                    });
+                } else {
+                    listDiv.innerHTML = '<p>No restaurants found.</p>';
+                }
+            } catch (error) {
+                displayResponse('restaurants-response', { error: error.message }, true);
+            }
+        }
+
+        async function approveRestaurant(restaurantId) {
+            const token = document.getElementById('admin-token').value;
+            
+            try {
+                const response = await fetch(`${API_BASE}/admin/restaurants/${restaurantId}/approve`, {
+                    method: 'PATCH',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await response.json();
+                
+                if (data.status === 'success') {
+                    alert('✅ Restaurant approved!');
+                    getAllRestaurants();
+                    getPlatformStats();
+                } else {
+                    alert('❌ ' + data.message);
+                }
+            } catch (error) {
+                alert('Error: ' + error.message);
+            }
+        }
+
+        async function deactivateRestaurant(restaurantId) {
+            if (!confirm('Are you sure you want to deactivate this restaurant?')) return;
+            
+            const token = document.getElementById('admin-token').value;
+            
+            try {
+                const response = await fetch(`${API_BASE}/admin/restaurants/${restaurantId}/deactivate`, {
+                    method: 'PATCH',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await response.json();
+                
+                if (data.status === 'success') {
+                    alert('✅ Restaurant deactivated!');
+                    getAllRestaurants();
+                    getPlatformStats();
+                } else {
+                    alert('❌ ' + data.message);
+                }
+            } catch (error) {
+                alert('Error: ' + error.message);
+            }
+        }
+
+        async function getAllOrders() {
+            const token = document.getElementById('admin-token').value;
+            const status = document.getElementById('order-status-filter').value;
+            
+            if (!token) {
+                alert('Please login first!');
+                return;
+            }
+
+            try {
+                let url = `${API_BASE}/admin/orders`;
+                if (status) url += `?status=${status}`;
+
+                const response = await fetch(url, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await response.json();
+                displayResponse('orders-response', data, !response.ok);
+
+                const listDiv = document.getElementById('orders-list');
+                if (data.status === 'success' && data.data.length > 0) {
+                    listDiv.innerHTML = '<h3 style="margin-top: 15px;">Orders:</h3>';
+                    data.data.forEach(order => {
+                        listDiv.innerHTML += `
+                            <div class="order-card">
+                                <h4>Order #${order.id.substring(0, 8)} - ${order.status.toUpperCase()}</h4>
+                                <p><strong>Customer:</strong> ${order.customer_name} (${order.customer_email})</p>
+                                <p><strong>Restaurant:</strong> ${order.restaurant_name}</p>
+                                <p><strong>Amount:</strong> ₹${order.total_amount} | <strong>Payment:</strong> ${order.payment_status}</p>
+                                <p><strong>Date:</strong> ${new Date(order.created_at).toLocaleString()}</p>
+                            </div>
+                        `;
+                    });
+                } else {
+                    listDiv.innerHTML = '<p>No orders found.</p>';
+                }
+            } catch (error) {
+                displayResponse('orders-response', { error: error.message }, true);
+            }
+        }
+
+        async function getAllCustomers() {
+            const token = document.getElementById('admin-token').value;
+            
+            if (!token) {
+                alert('Please login first!');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE}/admin/customers`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await response.json();
+                displayResponse('customers-response', data, !response.ok);
+
+                const listDiv = document.getElementById('customers-list');
+                if (data.status === 'success' && data.data.length > 0) {
+                    listDiv.innerHTML = '<h3 style="margin-top: 15px;">Customers:</h3>';
+                    data.data.forEach(customer => {
+                        listDiv.innerHTML += `
+                            <div class="customer-card">
+                                <h4>${customer.name}</h4>
+                                <p><strong>Email:</strong> ${customer.email} | <strong>Phone:</strong> ${customer.phone}</p>
+                                <p><strong>Total Orders:</strong> ${customer.total_orders} | <strong>Total Spent:</strong> ₹${customer.total_spent}</p>
+                                <p><strong>Joined:</strong> ${new Date(customer.created_at).toLocaleDateString()}</p>
+                            </div>
+                        `;
+                    });
+                } else {
+                    listDiv.innerHTML = '<p>No customers found.</p>';
+                }
+            } catch (error) {
+                displayResponse('customers-response', { error: error.message }, true);
+            }
+        }
+
+        async function getAllDeliveryPartners() {
+            const token = document.getElementById('admin-token').value;
+            const status = document.getElementById('delivery-status-filter').value;
+            
+            if (!token) {
+                alert('Please login first!');
+                return;
+            }
+
+            try {
+                let url = `${API_BASE}/admin/delivery-partners`;
+                if (status) url += `?status=${status}`;
+
+                const response = await fetch(url, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await response.json();
+                displayResponse('delivery-partners-response', data, !response.ok);
+
+                const listDiv = document.getElementById('delivery-partners-list');
+                if (data.status === 'success' && data.data.length > 0) {
+                    listDiv.innerHTML = '<h3 style="margin-top: 15px;">Delivery Partners:</h3>';
+                    data.data.forEach(p => {
+                        const statusBadge = p.is_active ? 
+                            '<span class="badge badge-active">Active</span>' : 
+                            '<span class="badge badge-pending">Pending</span>';
+                        const availBadge = p.is_available ? 
+                            '<span class="badge badge-active">Online</span>' : 
+                            '<span class="badge badge-inactive">Offline</span>';
+                        
+                        listDiv.innerHTML += `
+                            <div class="restaurant-card">
+                                <h4>${p.name} ${statusBadge} ${p.is_active ? availBadge : ''}</h4>
+                                <p><strong>Email:</strong> ${p.email} | <strong>Phone:</strong> ${p.phone}</p>
+                                <p><strong>Vehicle:</strong> ${p.vehicle_type} (${p.vehicle_number})</p>
+                                <p><strong>Deliveries:</strong> ${p.total_deliveries || 0} | <strong>Earnings:</strong> ₹${p.total_earnings || 0}</p>
+                                <small>Joined: ${new Date(p.created_at).toLocaleDateString()}</small><br>
+                                ${p.is_active ? 
+                                    `<button class="danger" onclick="deactivateDeliveryPartner('${p.id}')">Deactivate</button>` : 
+                                    `<button class="success" onclick="approveDeliveryPartner('${p.id}')">Approve</button>`
+                                }
+                            </div>
+                        `;
+                    });
+                } else {
+                    listDiv.innerHTML = '<p>No delivery partners found.</p>';
+                }
+            } catch (error) {
+                displayResponse('delivery-partners-response', { error: error.message }, true);
+            }
+        }
+
+        async function approveDeliveryPartner(partnerId) {
+            const token = document.getElementById('admin-token').value;
+            
+            try {
+                const response = await fetch(`${API_BASE}/admin/delivery-partners/${partnerId}/approve`, {
+                    method: 'PATCH',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await response.json();
+                
+                if (data.status === 'success') {
+                    alert('✅ Delivery partner approved!');
+                    getAllDeliveryPartners();
+                } else {
+                    alert('❌ ' + data.message);
+                }
+            } catch (error) {
+                alert('Error: ' + error.message);
+            }
+        }
+
+        async function deactivateDeliveryPartner(partnerId) {
+            if (!confirm('Are you sure you want to deactivate this delivery partner?')) return;
+            
+            const token = document.getElementById('admin-token').value;
+            
+            try {
+                const response = await fetch(`${API_BASE}/admin/delivery-partners/${partnerId}/deactivate`, {
+                    method: 'PATCH',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await response.json();
+                
+                if (data.status === 'success') {
+                    alert('✅ Delivery partner deactivated!');
+                    getAllDeliveryPartners();
+                } else {
+                    alert('❌ ' + data.message);
+                }
+            } catch (error) {
+                alert('Error: ' + error.message);
+            }
+        }
+    </script>
+</body>
+</html>

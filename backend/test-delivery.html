@@ -1,0 +1,588 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ahara - Delivery Partner Test</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 10px;
+            padding: 30px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+        }
+        h1 { color: #f5576c; margin-bottom: 30px; text-align: center; }
+        h2 { color: #495057; margin-bottom: 15px; font-size: 18px; }
+        h3 { color: #6c757d; margin: 20px 0 10px 0; font-size: 16px; }
+        .section {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); gap: 20px; }
+        .form-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; color: #495057; font-weight: 500; font-size: 14px; }
+        input, select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ced4da;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+        button {
+            background: #f5576c;
+            color: white;
+            padding: 12px 30px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.3s;
+            margin-right: 10px;
+            margin-top: 10px;
+        }
+        button:hover { background: #e04758; transform: translateY(-2px); }
+        button.success { background: #28a745; }
+        button.success:hover { background: #218838; }
+        button.warning { background: #ffc107; color: #000; }
+        button.warning:hover { background: #e0a800; }
+        .response {
+            margin-top: 20px;
+            padding: 15px;
+            background: #fff;
+            border-left: 4px solid #28a745;
+            border-radius: 5px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            white-space: pre-wrap;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .response.error { border-left-color: #dc3545; background: #fff5f5; }
+        .order-card {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            border-left: 4px solid #f5576c;
+        }
+        .order-card h4 { color: #f5576c; margin-bottom: 8px; }
+        .order-card p { margin: 5px 0; font-size: 14px; color: #495057; }
+        .badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+            margin-left: 8px;
+        }
+        .badge-online { background: #d4edda; color: #155724; }
+        .badge-offline { background: #f8d7da; color: #721c24; }
+        .badge-active { background: #d1ecf1; color: #0c5460; }
+        .stat-box {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+            border-left: 4px solid #f5576c;
+        }
+        .stat-box .label { font-size: 12px; color: #6c757d; text-transform: uppercase; }
+        .stat-box .value { font-size: 28px; font-weight: bold; color: #495057; margin-top: 5px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚴 Ahara - Delivery Partner System</h1>
+        
+        <!-- Authentication -->
+        <div class="section">
+            <h2>🔑 Delivery Partner Auth</h2>
+            <div class="grid">
+                <div>
+                    <h3>Signup</h3>
+                    <div class="form-group">
+                        <label>Name</label>
+                        <input type="text" id="signup-name" value="Rahul Kumar">
+                    </div>
+                    <div class="form-group">
+                        <label>Email</label>
+                        <input type="email" id="signup-email" value="rahul@delivery.com">
+                    </div>
+                    <div class="form-group">
+                        <label>Password</label>
+                        <input type="password" id="signup-password" value="delivery123">
+                    </div>
+                    <div class="form-group">
+                        <label>Phone</label>
+                        <input type="text" id="signup-phone" value="9876543299">
+                    </div>
+                    <div class="form-group">
+                        <label>Vehicle Type</label>
+                        <select id="signup-vehicle">
+                            <option>Bike</option>
+                            <option>Scooter</option>
+                            <option>Bicycle</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Vehicle Number</label>
+                        <input type="text" id="signup-vehicle-number" value="KA01AB1234">
+                    </div>
+                    <div class="form-group">
+                        <label>License Number</label>
+                        <input type="text" id="signup-license" value="KA0120190012345">
+                    </div>
+                    <button onclick="deliverySignup()">Sign Up</button>
+                    <div id="signup-response" class="response" style="display:none"></div>
+                </div>
+
+                <div>
+                    <h3>Login</h3>
+                    <div class="form-group">
+                        <label>Email</label>
+                        <input type="email" id="login-email" value="rahul@delivery.com">
+                    </div>
+                    <div class="form-group">
+                        <label>Password</label>
+                        <input type="password" id="login-password" value="delivery123">
+                    </div>
+                    <button onclick="deliveryLogin()">Login</button>
+                    
+                    <div class="form-group" style="margin-top: 20px;">
+                        <label>Delivery Partner Token</label>
+                        <input type="text" id="delivery-token" placeholder="Token will appear here">
+                    </div>
+                    <div id="login-response" class="response" style="display:none"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Partner Controls -->
+        <div class="section">
+            <h2>⚙️ Partner Controls</h2>
+            <button onclick="toggleAvailability()">Toggle Online/Offline</button>
+            <button onclick="getPartnerStats()">View My Stats</button>
+            <div id="controls-response" class="response" style="display:none"></div>
+            <div id="stats-display" class="grid" style="margin-top: 20px;"></div>
+        </div>
+
+        <!-- Available Orders -->
+        <div class="section">
+            <h2>📦 Available Orders</h2>
+            <button onclick="getAvailableOrders()">Refresh Available Orders</button>
+            <div id="available-orders-response" class="response" style="display:none"></div>
+            <div id="available-orders-list"></div>
+        </div>
+
+        <!-- Active Deliveries -->
+        <div class="section">
+            <h2>🚴 My Active Deliveries</h2>
+            <button onclick="getMyDeliveries()">Refresh My Deliveries</button>
+            <div id="my-deliveries-response" class="response" style="display:none"></div>
+            <div id="my-deliveries-list"></div>
+        </div>
+
+        <!-- Update Status -->
+        <div class="section">
+            <h2>📍 Update Delivery Status</h2>
+            <div class="grid">
+                <div class="form-group">
+                    <label>Order ID</label>
+                    <input type="text" id="status-order-id" placeholder="Copy from active deliveries">
+                </div>
+                <div class="form-group">
+                    <label>New Status</label>
+                    <select id="status-new">
+                        <option value="picked_up">Picked Up (from restaurant)</option>
+                        <option value="in_transit">In Transit (on the way)</option>
+                        <option value="delivered">Delivered (completed)</option>
+                    </select>
+                </div>
+            </div>
+            <button onclick="updateDeliveryStatus()">Update Status</button>
+            <div id="status-response" class="response" style="display:none"></div>
+        </div>
+
+        <!-- Delivery History -->
+        <div class="section">
+            <h2>📜 Delivery History</h2>
+            <button onclick="getDeliveryHistory()">View History</button>
+            <div id="history-response" class="response" style="display:none"></div>
+            <div id="history-list"></div>
+        </div>
+
+        <!-- Admin Panel Integration -->
+        <div class="section">
+            <h2>👨‍💼 Admin: Approve Delivery Partner</h2>
+            <p style="color: #6c757d; margin-bottom: 15px;">Use the admin panel (test-admin.html) to approve delivery partners, or use this quick approve:</p>
+            <div class="grid">
+                <div class="form-group">
+                    <label>Admin Token</label>
+                    <input type="text" id="admin-token" placeholder="Login from test-admin.html">
+                </div>
+                <div class="form-group">
+                    <label>Delivery Partner ID</label>
+                    <input type="text" id="approve-partner-id" placeholder="Get from signup response">
+                </div>
+            </div>
+            <button onclick="quickAdminLogin()">Quick Admin Login</button>
+            <button class="success" onclick="approvePartner()">Approve Partner</button>
+            <div id="admin-response" class="response" style="display:none"></div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:5000/api';
+
+        function displayResponse(elementId, data, isError = false) {
+            const el = document.getElementById(elementId);
+            el.style.display = 'block';
+            el.className = isError ? 'response error' : 'response';
+            el.textContent = JSON.stringify(data, null, 2);
+        }
+
+        async function deliverySignup() {
+            try {
+                const response = await fetch(`${API_BASE}/delivery/signup`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        name: document.getElementById('signup-name').value,
+                        email: document.getElementById('signup-email').value,
+                        password: document.getElementById('signup-password').value,
+                        phone: document.getElementById('signup-phone').value,
+                        vehicle_type: document.getElementById('signup-vehicle').value,
+                        vehicle_number: document.getElementById('signup-vehicle-number').value,
+                        license_number: document.getElementById('signup-license').value
+                    })
+                });
+                const data = await response.json();
+                displayResponse('signup-response', data, !response.ok);
+                
+                if (data.data && data.data.token) {
+                    document.getElementById('delivery-token').value = data.data.token;
+                    document.getElementById('approve-partner-id').value = data.data.partner.id;
+                    alert('✅ Signup successful! Partner ID: ' + data.data.partner.id + '\nNow go to Admin section below to approve.');
+                }
+            } catch (error) {
+                displayResponse('signup-response', { error: error.message }, true);
+            }
+        }
+
+        async function deliveryLogin() {
+            try {
+                const response = await fetch(`${API_BASE}/delivery/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        email: document.getElementById('login-email').value,
+                        password: document.getElementById('login-password').value
+                    })
+                });
+                const data = await response.json();
+                displayResponse('login-response', data, !response.ok);
+                
+                if (data.data && data.data.token) {
+                    document.getElementById('delivery-token').value = data.data.token;
+                    alert('✅ Login successful!');
+                    getPartnerStats();
+                }
+            } catch (error) {
+                displayResponse('login-response', { error: error.message }, true);
+            }
+        }
+
+        async function toggleAvailability() {
+            const token = document.getElementById('delivery-token').value;
+            if (!token) {
+                alert('Please login first!');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE}/delivery/toggle-availability`, {
+                    method: 'PATCH',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await response.json();
+                displayResponse('controls-response', data, !response.ok);
+                
+                if (data.status === 'success') {
+                    alert('✅ ' + data.message);
+                }
+            } catch (error) {
+                displayResponse('controls-response', { error: error.message }, true);
+            }
+        }
+
+        async function getPartnerStats() {
+            const token = document.getElementById('delivery-token').value;
+            if (!token) {
+                alert('Please login first!');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE}/delivery/stats`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await response.json();
+                displayResponse('controls-response', data, !response.ok);
+                
+                if (data.status === 'success') {
+                    const overall = data.data.overall;
+                    const today = data.data.today;
+                    
+                    document.getElementById('stats-display').innerHTML = `
+                        <div class="stat-box">
+                            <div class="label">Total Deliveries</div>
+                            <div class="value">${overall.total_deliveries || 0}</div>
+                        </div>
+                        <div class="stat-box">
+                            <div class="label">Completed</div>
+                            <div class="value">${overall.completed_deliveries || 0}</div>
+                        </div>
+                        <div class="stat-box">
+                            <div class="label">Total Earnings</div>
+                            <div class="value">₹${overall.total_earnings || 0}</div>
+                        </div>
+                        <div class="stat-box">
+                            <div class="label">Today's Deliveries</div>
+                            <div class="value">${today.today_deliveries || 0}</div>
+                        </div>
+                        <div class="stat-box">
+                            <div class="label">Today's Earnings</div>
+                            <div class="value">₹${today.today_earnings || 0}</div>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                displayResponse('controls-response', { error: error.message }, true);
+            }
+        }
+
+        async function getAvailableOrders() {
+            const token = document.getElementById('delivery-token').value;
+            if (!token) {
+                alert('Please login first!');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE}/delivery/available-orders`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await response.json();
+                displayResponse('available-orders-response', data, !response.ok);
+                
+                const listDiv = document.getElementById('available-orders-list');
+                if (data.status === 'success' && data.data.length > 0) {
+                    listDiv.innerHTML = '<h3 style="margin-top: 15px;">Available Orders:</h3>';
+                    data.data.forEach(order => {
+                        listDiv.innerHTML += `
+                            <div class="order-card">
+                                <h4>Order #${order.id.substring(0, 8)} - ₹${order.total_amount}</h4>
+                                <p><strong>🏪 Restaurant:</strong> ${order.restaurant_name}</p>
+                                <p><strong>📍 Pickup:</strong> ${order.restaurant_address}</p>
+                                <p><strong>📍 Deliver to:</strong> ${order.delivery_address}, ${order.delivery_city}</p>
+                                <p><strong>👤 Customer:</strong> ${order.customer_name} (${order.customer_phone})</p>
+                                <p><strong>📞 Restaurant:</strong> ${order.restaurant_phone}</p>
+                                <button class="success" onclick="acceptOrder('${order.id}')">Accept Order</button>
+                            </div>
+                        `;
+                    });
+                } else if (data.data.length === 0) {
+                    listDiv.innerHTML = '<p style="color: #6c757d; margin-top: 10px;">No available orders. Check back later or make sure you are online.</p>';
+                }
+            } catch (error) {
+                displayResponse('available-orders-response', { error: error.message }, true);
+            }
+        }
+
+        async function acceptOrder(orderId) {
+            const token = document.getElementById('delivery-token').value;
+            
+            try {
+                const response = await fetch(`${API_BASE}/delivery/orders/${orderId}/accept`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await response.json();
+                
+                if (data.status === 'success') {
+                    alert('✅ Order accepted! Check "My Active Deliveries"');
+                    getAvailableOrders();
+                    getMyDeliveries();
+                } else {
+                    alert('❌ ' + data.message);
+                }
+            } catch (error) {
+                alert('Error: ' + error.message);
+            }
+        }
+
+        async function getMyDeliveries() {
+            const token = document.getElementById('delivery-token').value;
+            if (!token) {
+                alert('Please login first!');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE}/delivery/my-deliveries`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await response.json();
+                displayResponse('my-deliveries-response', data, !response.ok);
+                
+                const listDiv = document.getElementById('my-deliveries-list');
+                if (data.status === 'success' && data.data.length > 0) {
+                    listDiv.innerHTML = '<h3 style="margin-top: 15px;">Active Deliveries:</h3>';
+                    data.data.forEach(order => {
+                        listDiv.innerHTML += `
+                            <div class="order-card">
+                                <h4>Order #${order.id.substring(0, 8)} <span class="badge badge-active">${order.status.toUpperCase()}</span></h4>
+                                <p><strong>Amount:</strong> ₹${order.total_amount}</p>
+                                <p><strong>Restaurant:</strong> ${order.restaurant_name} (${order.restaurant_phone})</p>
+                                <p><strong>Deliver to:</strong> ${order.delivery_address}, ${order.delivery_city}</p>
+                                <p><strong>Customer:</strong> ${order.customer_name} (${order.customer_phone})</p>
+                                <button onclick="document.getElementById('status-order-id').value='${order.id}'">Update Status</button>
+                            </div>
+                        `;
+                    });
+                } else {
+                    listDiv.innerHTML = '<p style="color: #6c757d; margin-top: 10px;">No active deliveries.</p>';
+                }
+            } catch (error) {
+                displayResponse('my-deliveries-response', { error: error.message }, true);
+            }
+        }
+
+        async function updateDeliveryStatus() {
+            const token = document.getElementById('delivery-token').value;
+            const orderId = document.getElementById('status-order-id').value;
+            const status = document.getElementById('status-new').value;
+            
+            if (!token || !orderId) {
+                alert('Please provide order ID!');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE}/delivery/orders/${orderId}/status`, {
+                    method: 'PATCH',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({ status })
+                });
+                const data = await response.json();
+                displayResponse('status-response', data, !response.ok);
+                
+                if (data.status === 'success') {
+                    alert('✅ Status updated to: ' + status);
+                    getMyDeliveries();
+                    if (status === 'delivered') {
+                        getPartnerStats();
+                    }
+                }
+            } catch (error) {
+                displayResponse('status-response', { error: error.message }, true);
+            }
+        }
+
+        async function getDeliveryHistory() {
+            const token = document.getElementById('delivery-token').value;
+            if (!token) {
+                alert('Please login first!');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE}/delivery/history`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await response.json();
+                displayResponse('history-response', data, !response.ok);
+                
+                const listDiv = document.getElementById('history-list');
+                if (data.status === 'success' && data.data.length > 0) {
+                    listDiv.innerHTML = '<h3 style="margin-top: 15px;">Completed Deliveries:</h3>';
+                    data.data.forEach(order => {
+                        listDiv.innerHTML += `
+                            <div class="order-card">
+                                <h4>Order #${order.id.substring(0, 8)} - ₹${order.total_amount}</h4>
+                                <p><strong>Restaurant:</strong> ${order.restaurant_name}</p>
+                                <p><strong>Customer:</strong> ${order.customer_name}</p>
+                                <p><strong>Delivered:</strong> ${new Date(order.actual_delivery_time).toLocaleString()}</p>
+                            </div>
+                        `;
+                    });
+                } else {
+                    listDiv.innerHTML = '<p style="color: #6c757d; margin-top: 10px;">No delivery history yet.</p>';
+                }
+            } catch (error) {
+                displayResponse('history-response', { error: error.message }, true);
+            }
+        }
+
+        async function quickAdminLogin() {
+            try {
+                const response = await fetch(`${API_BASE}/admin/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        email: 'admin@ahara.com',
+                        password: 'admin123'
+                    })
+                });
+                const data = await response.json();
+                
+                if (data.data && data.data.token) {
+                    document.getElementById('admin-token').value = data.data.token;
+                    alert('✅ Admin logged in!');
+                }
+            } catch (error) {
+                alert('Error: ' + error.message);
+            }
+        }
+
+        async function approvePartner() {
+            const token = document.getElementById('admin-token').value;
+            const partnerId = document.getElementById('approve-partner-id').value;
+            
+            if (!token || !partnerId) {
+                alert('Please provide admin token and partner ID!');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE}/admin/delivery-partners/${partnerId}/approve`, {
+                    method: 'PATCH',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await response.json();
+                displayResponse('admin-response', data, !response.ok);
+                
+                if (data.status === 'success') {
+                    alert('✅ Delivery partner approved! Now they can login.');
+                }
+            } catch (error) {
+                displayResponse('admin-response', { error: error.message }, true);
+            }
+        }
+    </script>
+</body>
+</html>

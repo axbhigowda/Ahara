@@ -1,0 +1,685 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ahara - Week 4: Orders & Payments</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #FA8BFF 0%, #2BD2FF 90%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 10px;
+            padding: 30px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+        }
+        h1 { color: #FA8BFF; margin-bottom: 30px; text-align: center; }
+        h2 { color: #495057; margin-bottom: 15px; font-size: 18px; }
+        h3 { color: #6c757d; margin: 20px 0 10px 0; font-size: 16px; }
+        .section {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 20px; }
+        .form-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; color: #495057; font-weight: 500; font-size: 14px; }
+        input, select, textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ced4da;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+        button {
+            background: #FA8BFF;
+            color: white;
+            padding: 12px 30px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.3s;
+            margin-right: 10px;
+            margin-top: 10px;
+        }
+        button:hover { background: #e077e8; transform: translateY(-2px); }
+        .response {
+            margin-top: 20px;
+            padding: 15px;
+            background: #fff;
+            border-left: 4px solid #28a745;
+            border-radius: 5px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            white-space: pre-wrap;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .response.error { border-left-color: #dc3545; background: #fff5f5; }
+        .item-row {
+            display: grid;
+            grid-template-columns: 3fr 1fr auto;
+            gap: 10px;
+            margin-bottom: 10px;
+            align-items: end;
+        }
+        .order-card {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            border-left: 4px solid #2BD2FF;
+        }
+        .order-card h4 { color: #FA8BFF; margin-bottom: 8px; }
+        .order-card p { margin: 5px 0; font-size: 14px; color: #495057; }
+        .badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+            margin-left: 8px;
+        }
+        .badge-pending { background: #fff3cd; color: #856404; }
+        .badge-confirmed { background: #d4edda; color: #155724; }
+        .badge-preparing { background: #d1ecf1; color: #0c5460; }
+        .badge-ready { background: #cce5ff; color: #004085; }
+        .badge-picked_up { background: #d4edda; color: #155724; }
+        .badge-delivered { background: #d4edda; color: #155724; }
+        .badge-cancelled { background: #f8d7da; color: #721c24; }
+        .address-card {
+            background: white;
+            padding: 12px;
+            border-radius: 6px;
+            margin-bottom: 8px;
+            border: 1px solid #dee2e6;
+        }
+        .address-card.default { border-color: #28a745; border-width: 2px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🛒 Ahara - Week 4: Orders & Payment System</h1>
+        
+        <div class="section">
+            <h2>🔑 Authentication</h2>
+            <div class="grid">
+                <div class="form-group">
+                    <label>Customer Token</label>
+                    <input type="text" id="customer-token" placeholder="Login as customer first">
+                    <button onclick="quickCustomerLogin()">Quick Login (Customer)</button>
+                </div>
+                <div class="form-group">
+                    <label>Restaurant Token</label>
+                    <input type="text" id="restaurant-token" placeholder="Login as restaurant first">
+                    <button onclick="quickRestaurantLogin()">Quick Login (Restaurant)</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>📍 Address Management (Customer)</h2>
+            
+            <h3>1. Add Delivery Address</h3>
+            <div class="grid">
+                <div>
+                    <div class="form-group">
+                        <label>Address Line 1 *</label>
+                        <input type="text" id="addr-line1" value="123 MG Road">
+                    </div>
+                    <div class="form-group">
+                        <label>Address Line 2</label>
+                        <input type="text" id="addr-line2" value="Near Metro Station">
+                    </div>
+                    <div class="form-group">
+                        <label>City *</label>
+                        <input type="text" id="addr-city" value="Bangalore">
+                    </div>
+                </div>
+                <div>
+                    <div class="form-group">
+                        <label>State *</label>
+                        <input type="text" id="addr-state" value="Karnataka">
+                    </div>
+                    <div class="form-group">
+                        <label>Pincode *</label>
+                        <input type="text" id="addr-pincode" value="560001">
+                    </div>
+                    <div class="form-group">
+                        <label>Set as Default?</label>
+                        <select id="addr-default">
+                            <option value="true">Yes</option>
+                            <option value="false">No</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            <button onclick="addAddress()">Add Address</button>
+            <div id="add-address-response" class="response" style="display:none"></div>
+
+            <h3>2. View My Addresses</h3>
+            <button onclick="getMyAddresses()">Get My Addresses</button>
+            <div id="addresses-response" class="response" style="display:none"></div>
+            <div id="addresses-list"></div>
+        </div>
+
+        <div class="section">
+            <h2>🛍️ Create Order (Customer)</h2>
+            
+            <h3>3. Build Your Cart</h3>
+            <div class="form-group">
+                <label>Restaurant ID *</label>
+                <input type="text" id="order-restaurant-id" placeholder="Get from Week 3 test page">
+            </div>
+            
+            <div id="cart-items">
+                <div class="item-row">
+                    <div class="form-group">
+                        <label>Menu Item ID</label>
+                        <input type="text" class="cart-item-id" placeholder="Get from Week 3 menu">
+                    </div>
+                    <div class="form-group">
+                        <label>Quantity</label>
+                        <input type="number" class="cart-quantity" value="1" min="1">
+                    </div>
+                    <button onclick="removeCartItem(this)" style="background: #dc3545; padding: 10px 15px; margin-top: 27px;">Remove</button>
+                </div>
+            </div>
+            <button onclick="addCartItem()">+ Add More Items</button>
+            
+            <div class="form-group" style="margin-top: 15px;">
+                <label>Delivery Address ID *</label>
+                <input type="text" id="order-address-id" placeholder="Get from 'View My Addresses' above">
+            </div>
+            
+            <div class="form-group">
+                <label>Special Instructions (Optional)</label>
+                <textarea id="order-instructions" rows="2" placeholder="e.g., Extra spicy, no onions"></textarea>
+            </div>
+            
+            <button onclick="createOrder()">Create Order</button>
+            <div id="create-order-response" class="response" style="display:none"></div>
+        </div>
+
+        <div class="section">
+            <h2>💳 Payment Integration</h2>
+            
+            <h3>4. Initiate Payment (Razorpay)</h3>
+            <div class="form-group">
+                <label>Order ID (from above)</label>
+                <input type="text" id="payment-order-id" placeholder="Copy order ID from create order response">
+            </div>
+            <button onclick="initiatePayment()">Start Payment</button>
+            <div id="payment-response" class="response" style="display:none"></div>
+
+            <h3>Note: Razorpay Test Mode</h3>
+            <p style="background: #fff3cd; padding: 10px; border-radius: 5px; margin-top: 10px;">
+                📝 In test mode, use these test card details:<br>
+                <strong>Card Number:</strong> 4111 1111 1111 1111<br>
+                <strong>CVV:</strong> Any 3 digits (e.g., 123)<br>
+                <strong>Expiry:</strong> Any future date (e.g., 12/25)
+            </p>
+        </div>
+
+        <div class="section">
+            <h2>📋 Order Management</h2>
+            
+            <div class="grid">
+                <div>
+                    <h3>5. Customer: My Orders</h3>
+                    <button onclick="getMyOrders()">Get My Orders</button>
+                    <div id="my-orders-response" class="response" style="display:none"></div>
+                    <div id="my-orders-list"></div>
+                </div>
+                
+                <div>
+                    <h3>6. Restaurant: Incoming Orders</h3>
+                    <button onclick="getRestaurantOrders()">Get Restaurant Orders</button>
+                    <div id="restaurant-orders-response" class="response" style="display:none"></div>
+                    <div id="restaurant-orders-list"></div>
+                </div>
+            </div>
+
+            <h3>7. View Order Details</h3>
+            <div class="form-group">
+                <label>Order ID</label>
+                <input type="text" id="view-order-id" placeholder="Copy from orders list above">
+            </div>
+            <button onclick="viewOrderDetails()">View Details</button>
+            <div id="order-details-response" class="response" style="display:none"></div>
+
+            <h3>8. Update Order Status (Restaurant Only)</h3>
+            <div class="grid">
+                <div class="form-group">
+                    <label>Order ID</label>
+                    <input type="text" id="status-order-id" placeholder="Copy from restaurant orders">
+                </div>
+                <div class="form-group">
+                    <label>New Status</label>
+                    <select id="new-status">
+                        <option value="confirmed">Confirmed</option>
+                        <option value="preparing">Preparing</option>
+                        <option value="ready">Ready for Pickup</option>
+                        <option value="picked_up">Picked Up</option>
+                        <option value="cancelled">Cancelled</option>
+                    </select>
+                </div>
+            </div>
+            <button onclick="updateOrderStatus()">Update Status</button>
+            <div id="update-status-response" class="response" style="display:none"></div>
+        </div>
+    </div>
+
+    <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+    <script>
+        const API_BASE = 'http://localhost:5000/api';
+        let razorpayOrderData = null;
+
+        function displayResponse(elementId, data, isError = false) {
+            const el = document.getElementById(elementId);
+            el.style.display = 'block';
+            el.className = isError ? 'response error' : 'response';
+            el.textContent = JSON.stringify(data, null, 2);
+        }
+
+        async function quickCustomerLogin() {
+            try {
+                const response = await fetch(`${API_BASE}/auth/customer/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        email: 'testing22@example.com',
+                        password: 'test123456'
+                    })
+                });
+                const data = await response.json();
+                if (data.data && data.data.token) {
+                    document.getElementById('customer-token').value = data.data.token;
+                    alert('✅ Customer logged in!');
+                } else {
+                    alert('❌ Login failed. Please signup first from Week 2 test page.');
+                }
+            } catch (error) {
+                alert('❌ Error: ' + error.message);
+            }
+        }
+
+        async function quickRestaurantLogin() {
+            try {
+                const response = await fetch(`${API_BASE}/auth/restaurant/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        email: 'biryani@ahara.com',
+                        password: 'restaurant123'
+                    })
+                });
+                const data = await response.json();
+                if (data.data && data.data.token) {
+                    document.getElementById('restaurant-token').value = data.data.token;
+                    alert('✅ Restaurant logged in!');
+                } else {
+                    alert('❌ Login failed: ' + data.message);
+                }
+            } catch (error) {
+                alert('❌ Error: ' + error.message);
+            }
+        }
+
+        async function addAddress() {
+            const token = document.getElementById('customer-token').value;
+            if (!token) {
+                alert('Please login as customer first!');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE}/addresses`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({
+                        address_line1: document.getElementById('addr-line1').value,
+                        address_line2: document.getElementById('addr-line2').value,
+                        city: document.getElementById('addr-city').value,
+                        state: document.getElementById('addr-state').value,
+                        pincode: document.getElementById('addr-pincode').value,
+                        is_default: document.getElementById('addr-default').value === 'true'
+                    })
+                });
+                const data = await response.json();
+                displayResponse('add-address-response', data, !response.ok);
+                if (data.status === 'success') {
+                    alert('✅ Address added! ID: ' + data.data.id);
+                    document.getElementById('order-address-id').value = data.data.id;
+                }
+            } catch (error) {
+                displayResponse('add-address-response', { error: error.message }, true);
+            }
+        }
+
+        async function getMyAddresses() {
+            const token = document.getElementById('customer-token').value;
+            if (!token) {
+                alert('Please login as customer first!');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE}/addresses`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await response.json();
+                displayResponse('addresses-response', data, !response.ok);
+
+                const listDiv = document.getElementById('addresses-list');
+                if (data.status === 'success' && data.data.length > 0) {
+                    listDiv.innerHTML = '<h3 style="margin-top: 15px;">Your Addresses:</h3>';
+                    data.data.forEach(addr => {
+                        const defaultBadge = addr.is_default ? '<span class="badge" style="background: #28a745; color: white;">Default</span>' : '';
+                        listDiv.innerHTML += `
+                            <div class="address-card ${addr.is_default ? 'default' : ''}">
+                                <strong>ID: ${addr.id}</strong> ${defaultBadge}<br>
+                                ${addr.address_line1}, ${addr.address_line2 || ''}<br>
+                                ${addr.city}, ${addr.state} - ${addr.pincode}
+                                <button onclick="document.getElementById('order-address-id').value='${addr.id}'" style="padding: 5px 15px; margin-top: 5px;">Use This</button>
+                            </div>
+                        `;
+                    });
+                } else {
+                    listDiv.innerHTML = '<p style="color: #6c757d; margin-top: 10px;">No addresses yet. Add one above!</p>';
+                }
+            } catch (error) {
+                displayResponse('addresses-response', { error: error.message }, true);
+            }
+        }
+
+        function addCartItem() {
+            const cartDiv = document.getElementById('cart-items');
+            const newRow = document.createElement('div');
+            newRow.className = 'item-row';
+            newRow.innerHTML = `
+                <div class="form-group">
+                    <label>Menu Item ID</label>
+                    <input type="text" class="cart-item-id" placeholder="Get from Week 3 menu">
+                </div>
+                <div class="form-group">
+                    <label>Quantity</label>
+                    <input type="number" class="cart-quantity" value="1" min="1">
+                </div>
+                <button onclick="removeCartItem(this)" style="background: #dc3545; padding: 10px 15px; margin-top: 27px;">Remove</button>
+            `;
+            cartDiv.appendChild(newRow);
+        }
+
+        function removeCartItem(btn) {
+            btn.parentElement.remove();
+        }
+
+        async function createOrder() {
+            const token = document.getElementById('customer-token').value;
+            if (!token) {
+                alert('Please login as customer first!');
+                return;
+            }
+
+            const items = [];
+            document.querySelectorAll('.item-row').forEach(row => {
+                const itemId = row.querySelector('.cart-item-id').value;
+                const quantity = parseInt(row.querySelector('.cart-quantity').value);
+                if (itemId) {
+                    items.push({ menu_item_id: itemId, quantity });
+                }
+            });
+
+            if (items.length === 0) {
+                alert('Please add at least one item to cart!');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE}/orders/create`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({
+                        restaurant_id: document.getElementById('order-restaurant-id').value,
+                        items: items,
+                        delivery_address_id: document.getElementById('order-address-id').value,
+                        special_instructions: document.getElementById('order-instructions').value
+                    })
+                });
+                const data = await response.json();
+                displayResponse('create-order-response', data, !response.ok);
+                if (data.status === 'success') {
+                    alert('✅ Order created! ID: ' + data.data.order_id + '\nTotal: ₹' + data.data.total_amount);
+                    document.getElementById('payment-order-id').value = data.data.order_id;
+                }
+            } catch (error) {
+                displayResponse('create-order-response', { error: error.message }, true);
+            }
+        }
+
+        async function initiatePayment() {
+            const token = document.getElementById('customer-token').value;
+            const orderId = document.getElementById('payment-order-id').value;
+            
+            if (!token || !orderId) {
+                alert('Please provide customer token and order ID!');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE}/orders/payment/create`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({ order_id: orderId })
+                });
+                const data = await response.json();
+                displayResponse('payment-response', data, !response.ok);
+
+                if (data.status === 'success') {
+                    razorpayOrderData = data.data;
+                    openRazorpay(orderId, token);
+                }
+            } catch (error) {
+                displayResponse('payment-response', { error: error.message }, true);
+            }
+        }
+
+        function openRazorpay(orderId, token) {
+            const options = {
+                key: razorpayOrderData.key_id,
+                amount: razorpayOrderData.amount,
+                currency: razorpayOrderData.currency,
+                name: 'Ahara',
+                description: 'Food Order Payment',
+                order_id: razorpayOrderData.razorpay_order_id,
+                handler: function (response) {
+                    verifyPayment(orderId, response, token);
+                },
+                prefill: {
+                    name: 'Test Master',
+                    email: 'testing22@example.com',
+                    contact: '8296269690'
+                },
+                theme: {
+                    color: '#FA8BFF'
+                }
+            };
+
+            const rzp = new Razorpay(options);
+            rzp.open();
+        }
+
+        async function verifyPayment(orderId, paymentResponse, token) {
+            try {
+                const response = await fetch(`${API_BASE}/orders/payment/verify`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({
+                        order_id: orderId,
+                        razorpay_order_id: paymentResponse.razorpay_order_id,
+                        razorpay_payment_id: paymentResponse.razorpay_payment_id,
+                        razorpay_signature: paymentResponse.razorpay_signature
+                    })
+                });
+                const data = await response.json();
+                if (data.status === 'success') {
+                    alert('✅ Payment Successful! Order confirmed.');
+                    getMyOrders();
+                } else {
+                    alert('❌ Payment verification failed!');
+                }
+            } catch (error) {
+                alert('❌ Error: ' + error.message);
+            }
+        }
+
+        async function getMyOrders() {
+            const token = document.getElementById('customer-token').value;
+            if (!token) {
+                alert('Please login as customer first!');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE}/orders/my-orders`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await response.json();
+                displayResponse('my-orders-response', data, !response.ok);
+
+                const listDiv = document.getElementById('my-orders-list');
+                if (data.status === 'success' && data.data.length > 0) {
+                    listDiv.innerHTML = '<h4 style="margin-top: 15px;">Your Orders:</h4>';
+                    data.data.forEach(order => {
+                        const statusBadge = `<span class="badge badge-${order.status}">${order.status.toUpperCase()}</span>`;
+                        listDiv.innerHTML += `
+                            <div class="order-card">
+                                <h4>Order #${order.id.substring(0, 8)} ${statusBadge}</h4>
+                                <p><strong>Restaurant:</strong> ${order.restaurant_name}</p>
+                                <p><strong>Total:</strong> ₹${order.total_amount} | <strong>Items:</strong> ${order.items_count}</p>
+                                <p><strong>Date:</strong> ${new Date(order.created_at).toLocaleString()}</p>
+                                <button onclick="document.getElementById('view-order-id').value='${order.id}'">View Details</button>
+                            </div>
+                        `;
+                    });
+                } else {
+                    listDiv.innerHTML = '<p style="color: #6c757d; margin-top: 10px;">No orders yet. Create one above!</p>';
+                }
+            } catch (error) {
+                displayResponse('my-orders-response', { error: error.message }, true);
+            }
+        }
+
+        async function getRestaurantOrders() {
+            const token = document.getElementById('restaurant-token').value;
+            if (!token) {
+                alert('Please login as restaurant first!');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE}/orders/restaurant/orders`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await response.json();
+                displayResponse('restaurant-orders-response', data, !response.ok);
+
+                const listDiv = document.getElementById('restaurant-orders-list');
+                if (data.status === 'success' && data.data.length > 0) {
+                    listDiv.innerHTML = '<h4 style="margin-top: 15px;">Incoming Orders:</h4>';
+                    data.data.forEach(order => {
+                        const statusBadge = `<span class="badge badge-${order.status}">${order.status.toUpperCase()}</span>`;
+                        listDiv.innerHTML += `
+                            <div class="order-card">
+                                <h4>Order #${order.id.substring(0, 8)} ${statusBadge}</h4>
+                                <p><strong>Customer:</strong> ${order.customer_name} | ${order.customer_phone}</p>
+                                <p><strong>Total:</strong> ₹${order.total_amount} | <strong>Items:</strong> ${order.items_count}</p>
+                                <p><strong>Delivery:</strong> ${order.address_line1}, ${order.city}</p>
+                                <p><strong>Date:</strong> ${new Date(order.created_at).toLocaleString()}</p>
+                                <button onclick="document.getElementById('status-order-id').value='${order.id}'">Update Status</button>
+                            </div>
+                        `;
+                    });
+                } else {
+                    listDiv.innerHTML = '<p style="color: #6c757d; margin-top: 10px;">No orders yet.</p>';
+                }
+            } catch (error) {
+                displayResponse('restaurant-orders-response', { error: error.message }, true);
+            }
+        }
+
+        async function viewOrderDetails() {
+            const token = document.getElementById('customer-token').value || document.getElementById('restaurant-token').value;
+            const orderId = document.getElementById('view-order-id').value;
+            
+            if (!token || !orderId) {
+                alert('Please provide token and order ID!');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE}/orders/${orderId}`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await response.json();
+                displayResponse('order-details-response', data, !response.ok);
+            } catch (error) {
+                displayResponse('order-details-response', { error: error.message }, true);
+            }
+        }
+
+        async function updateOrderStatus() {
+            const token = document.getElementById('restaurant-token').value;
+            const orderId = document.getElementById('status-order-id').value;
+            const status = document.getElementById('new-status').value;
+            
+            if (!token || !orderId) {
+                alert('Please provide restaurant token and order ID!');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE}/orders/${orderId}/status`, {
+                    method: 'PATCH',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({ status })
+                });
+                const data = await response.json();
+                displayResponse('update-status-response', data, !response.ok);
+                if (data.status === 'success') {
+                    alert('✅ Order status updated to: ' + status);
+                    getRestaurantOrders();
+                }
+            } catch (error) {
+                displayResponse('update-status-response', { error: error.message }, true);
+            }
+        }
+    </script>
+</body>
+</html>

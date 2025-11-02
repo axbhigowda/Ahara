@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ahara - Week 3 Tests</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 10px;
+            padding: 30px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+        }
+        h1 { color: #f5576c; margin-bottom: 30px; text-align: center; }
+        h2 { color: #495057; margin-bottom: 15px; font-size: 18px; }
+        .section {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 20px; }
+        .form-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; color: #495057; font-weight: 500; font-size: 14px; }
+        input, select, textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ced4da;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+        button {
+            background: #f5576c;
+            color: white;
+            padding: 12px 30px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.3s;
+            margin-right: 10px;
+        }
+        button:hover { background: #e04758; transform: translateY(-2px); }
+        .response {
+            margin-top: 20px;
+            padding: 15px;
+            background: #fff;
+            border-left: 4px solid #28a745;
+            border-radius: 5px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            white-space: pre-wrap;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .response.error { border-left-color: #dc3545; background: #fff5f5; }
+        .token-box {
+            background: #fff3cd;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+            font-size: 12px;
+        }
+        .restaurant-card {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            border: 1px solid #dee2e6;
+        }
+        .restaurant-card h3 { color: #f5576c; margin-bottom: 5px; }
+        .restaurant-card p { color: #6c757d; font-size: 14px; margin: 3px 0; }
+        .menu-item {
+            background: white;
+            padding: 12px;
+            border-radius: 6px;
+            margin-bottom: 8px;
+            border: 1px solid #dee2e6;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .menu-item-info { flex: 1; }
+        .menu-item-name { font-weight: 600; color: #495057; }
+        .menu-item-price { color: #28a745; font-weight: 600; }
+        .menu-item-desc { color: #6c757d; font-size: 13px; margin-top: 3px; }
+        .badge {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+            margin-left: 5px;
+        }
+        .badge-veg { background: #d4edda; color: #155724; }
+        .badge-nonveg { background: #f8d7da; color: #721c24; }
+        .badge-available { background: #d1ecf1; color: #0c5460; }
+        .badge-unavailable { background: #f8d7da; color: #721c24; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🍽️ Ahara - Week 3: Restaurant & Menu Management</h1>
+        
+        <!-- Token Storage -->
+        <div class="section">
+            <h2>🔑 Authentication Token</h2>
+            <div class="form-group">
+                <label>Restaurant Token (Login first from Week 2 test page)</label>
+                <input type="text" id="restaurant-token" placeholder="Paste token here or login to get one">
+            </div>
+            <button onclick="testRestaurantLogin()">Quick Login (biryani@ahara.com)</button>
+        </div>
+
+        <!-- Public APIs -->
+        <div class="section">
+            <h2>📋 Public APIs (No Auth Required)</h2>
+            
+            <h3 style="margin: 15px 0 10px 0; color: #6c757d;">1. Browse All Restaurants</h3>
+            <div class="grid">
+                <div>
+                    <div class="form-group">
+                        <label>City Filter (optional)</label>
+                        <input type="text" id="filter-city" placeholder="e.g., Bangalore">
+                    </div>
+                    <div class="form-group">
+                        <label>Cuisine Filter (optional)</label>
+                        <input type="text" id="filter-cuisine" placeholder="e.g., North Indian">
+                    </div>
+                </div>
+                <div>
+                    <div class="form-group">
+                        <label>Search by Name (optional)</label>
+                        <input type="text" id="search-name" placeholder="e.g., Pizza">
+                    </div>
+                    <div class="form-group">
+                        <label>Min Rating (optional)</label>
+                        <input type="number" id="filter-rating" step="0.1" min="0" max="5" placeholder="e.g., 4.0">
+                    </div>
+                </div>
+            </div>
+            <button onclick="getAllRestaurants()">Get All Restaurants</button>
+            <button onclick="clearFilters()">Clear Filters</button>
+            <div id="restaurants-response" class="response" style="display:none"></div>
+            <div id="restaurants-list"></div>
+            
+            <h3 style="margin: 25px 0 10px 0; color: #6c757d;">2. View Restaurant Menu</h3>
+            <div class="form-group">
+                <label>Restaurant ID</label>
+                <input type="text" id="menu-restaurant-id" placeholder="Copy from restaurant list above">
+            </div>
+            <button onclick="getRestaurantMenu()">Get Menu</button>
+            <div id="menu-response" class="response" style="display:none"></div>
+            <div id="menu-list"></div>
+        </div>
+
+        <!-- Restaurant Owner APIs -->
+        <div class="section">
+            <h2>🏪 Restaurant Owner APIs (Auth Required)</h2>
+            
+            <h3 style="margin: 15px 0 10px 0; color: #6c757d;">3. Add Menu Item</h3>
+            <div class="grid">
+                <div>
+                    <div class="form-group">
+                        <label>Item Name *</label>
+                        <input type="text" id="add-name" value="Chicken Biryani">
+                    </div>
+                    <div class="form-group">
+                        <label>Description</label>
+                        <textarea id="add-desc" rows="2">Hyderabadi style aromatic biryani with tender chicken</textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>Price (₹) *</label>
+                        <input type="number" id="add-price" value="299" step="0.01">
+                    </div>
+                </div>
+                <div>
+                    <div class="form-group">
+                        <label>Category</label>
+                        <select id="add-category">
+                            <option>Main Course</option>
+                            <option>Starter</option>
+                            <option>Breads</option>
+                            <option>Desserts</option>
+                            <option>Beverages</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Vegetarian?</label>
+                        <select id="add-veg">
+                            <option value="false">No</option>
+                            <option value="true">Yes</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Available?</label>
+                        <select id="add-available">
+                            <option value="true">Yes</option>
+                            <option value="false">No</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            <button onclick="addMenuItem()">Add Menu Item</button>
+            <div id="add-menu-response" class="response" style="display:none"></div>
+
+            <h3 style="margin: 25px 0 10px 0; color: #6c757d;">4. View My Menu</h3>
+            <button onclick="getMyMenu()">Get My Menu</button>
+            <div id="my-menu-response" class="response" style="display:none"></div>
+            <div id="my-menu-list"></div>
+
+            <h3 style="margin: 25px 0 10px 0; color: #6c757d;">5. Update Menu Item</h3>
+            <div class="grid">
+                <div>
+                    <div class="form-group">
+                        <label>Item ID *</label>
+                        <input type="text" id="update-item-id" placeholder="Copy from 'View My Menu' above">
+                    </div>
+                    <div class="form-group">
+                        <label>New Name</label>
+                        <input type="text" id="update-name" placeholder="Leave empty to keep current">
+                    </div>
+                </div>
+                <div>
+                    <div class="form-group">
+                        <label>New Price (₹)</label>
+                        <input type="number" id="update-price" step="0.01" placeholder="Leave empty to keep current">
+                    </div>
+                    <div class="form-group">
+                        <label>Available?</label>
+                        <select id="update-available">
+                            <option value="">Keep Current</option>
+                            <option value="true">Yes</option>
+                            <option value="false">No</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            <button onclick="updateMenuItem()">Update Item</button>
+            <div id="update-menu-response" class="response" style="display:none"></div>
+
+            <h3 style="margin: 25px 0 10px 0; color: #6c757d;">6. Toggle Availability</h3>
+            <div class="form-group">
+                <label>Item ID</label>
+                <input type="text" id="toggle-item-id" placeholder="Copy from 'View My Menu' above">
+            </div>
+            <button onclick="toggleAvailability()">Toggle On/Off</button>
+            <div id="toggle-response" class="response" style="display:none"></div>
+
+            <h3 style="margin: 25px 0 10px 0; color: #6c757d;">7. Delete Menu Item</h3>
+            <div class="form-group">
+                <label>Item ID</label>
+                <input type="text" id="delete-item-id" placeholder="Copy from 'View My Menu' above">
+            </div>
+            <button onclick="deleteMenuItem()">Delete Item</button>
+            <div id="delete-response" class="response" style="display:none"></div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:5000/api';
+
+        function displayResponse(elementId, data, isError = false) {
+            const el = document.getElementById(elementId);
+            el.style.display = 'block';
+            el.className = isError ? 'response error' : 'response';
+            el.textContent = JSON.stringify(data, null, 2);
+        }
+
+        async function testRestaurantLogin() {
+            try {
+                const response = await fetch(`${API_BASE}/auth/restaurant/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        email: 'biryani@ahara.com',
+                        password: 'restaurant123'
+                    })
+                });
+                const data = await response.json();
+                if (data.data && data.data.token) {
+                    document.getElementById('restaurant-token').value = data.data.token;
+                    alert('✅ Login successful! Token saved.');
+                } else {
+                    alert('❌ Login failed: ' + data.message);
+                }
+            } catch (error) {
+                alert('❌ Error: ' + error.message);
+            }
+        }
+
+        async function getAllRestaurants() {
+            try {
+                let url = `${API_BASE}/restaurants?`;
+                const city = document.getElementById('filter-city').value;
+                const cuisine = document.getElementById('filter-cuisine').value;
+                const search = document.getElementById('search-name').value;
+                const rating = document.getElementById('filter-rating').value;
+
+                if (city) url += `city=${city}&`;
+                if (cuisine) url += `cuisine=${cuisine}&`;
+                if (search) url += `search=${search}&`;
+                if (rating) url += `min_rating=${rating}&`;
+
+                const response = await fetch(url);
+                const data = await response.json();
+                displayResponse('restaurants-response', data, !response.ok);
+
+                const listDiv = document.getElementById('restaurants-list');
+                if (data.status === 'success' && data.data.length > 0) {
+                    listDiv.innerHTML = '<h3 style="margin: 15px 0; color: #495057;">Results:</h3>';
+                    data.data.forEach(r => {
+                        listDiv.innerHTML += `
+                            <div class="restaurant-card">
+                                <h3>${r.name} ⭐ ${r.rating}</h3>
+                                <p><strong>ID:</strong> ${r.id}</p>
+                                <p><strong>Cuisine:</strong> ${r.cuisine_type} | <strong>City:</strong> ${r.city}</p>
+                                <p><strong>Hours:</strong> ${r.opening_time} - ${r.closing_time}</p>
+                                <button onclick="document.getElementById('menu-restaurant-id').value='${r.id}'">View Menu</button>
+                            </div>
+                        `;
+                    });
+                } else {
+                    listDiv.innerHTML = '';
+                }
+            } catch (error) {
+                displayResponse('restaurants-response', { error: error.message }, true);
+            }
+        }
+
+        function clearFilters() {
+            document.getElementById('filter-city').value = '';
+            document.getElementById('filter-cuisine').value = '';
+            document.getElementById('search-name').value = '';
+            document.getElementById('filter-rating').value = '';
+        }
+
+        async function getRestaurantMenu() {
+            try {
+                const restaurantId = document.getElementById('menu-restaurant-id').value;
+                if (!restaurantId) {
+                    alert('Please enter Restaurant ID');
+                    return;
+                }
+
+                const response = await fetch(`${API_BASE}/menu/restaurant/${restaurantId}`);
+                const data = await response.json();
+                displayResponse('menu-response', data, !response.ok);
+
+                const listDiv = document.getElementById('menu-list');
+                if (data.status === 'success' && data.data.length > 0) {
+                    listDiv.innerHTML = '<h3 style="margin: 15px 0; color: #495057;">Menu Items:</h3>';
+                    data.data.forEach(item => {
+                        const vegBadge = item.is_vegetarian ? 
+                            '<span class="badge badge-veg">Veg</span>' : 
+                            '<span class="badge badge-nonveg">Non-Veg</span>';
+                        const availBadge = item.is_available ? 
+                            '<span class="badge badge-available">Available</span>' : 
+                            '<span class="badge badge-unavailable">Unavailable</span>';
+                        
+                        listDiv.innerHTML += `
+                            <div class="menu-item">
+                                <div class="menu-item-info">
+                                    <div class="menu-item-name">${item.name} ${vegBadge} ${availBadge}</div>
+                                    <div class="menu-item-price">₹${item.price}</div>
+                                    <div class="menu-item-desc">${item.description || ''}</div>
+                                    <small style="color: #6c757d;">Category: ${item.category}</small>
+                                </div>
+                            </div>
+                        `;
+                    });
+                } else {
+                    listDiv.innerHTML = '<p style="color: #6c757d; margin-top: 10px;">No menu items found</p>';
+                }
+            } catch (error) {
+                displayResponse('menu-response', { error: error.message }, true);
+            }
+        }
+
+        async function addMenuItem() {
+            const token = document.getElementById('restaurant-token').value;
+            if (!token) {
+                alert('Please login first to get a token!');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE}/menu`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({
+                        name: document.getElementById('add-name').value,
+                        description: document.getElementById('add-desc').value,
+                        price: parseFloat(document.getElementById('add-price').value),
+                        category: document.getElementById('add-category').value,
+                        is_vegetarian: document.getElementById('add-veg').value === 'true',
+                        is_available: document.getElementById('add-available').value === 'true'
+                    })
+                });
+                const data = await response.json();
+                displayResponse('add-menu-response', data, !response.ok);
+                if (data.status === 'success') {
+                    alert('✅ Menu item added! Click "Get My Menu" to see it.');
+                }
+            } catch (error) {
+                displayResponse('add-menu-response', { error: error.message }, true);
+            }
+        }
+
+        async function getMyMenu() {
+            const token = document.getElementById('restaurant-token').value;
+            if (!token) {
+                alert('Please login first!');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE}/menu/my-menu`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await response.json();
+                displayResponse('my-menu-response', data, !response.ok);
+
+                const listDiv = document.getElementById('my-menu-list');
+                if (data.status === 'success' && data.data.length > 0) {
+                    listDiv.innerHTML = '<h3 style="margin: 15px 0; color: #495057;">Your Menu:</h3>';
+                    data.data.forEach(item => {
+                        const vegBadge = item.is_vegetarian ? 
+                            '<span class="badge badge-veg">Veg</span>' : 
+                            '<span class="badge badge-nonveg">Non-Veg</span>';
+                        const availBadge = item.is_available ? 
+                            '<span class="badge badge-available">Available</span>' : 
+                            '<span class="badge badge-unavailable">Unavailable</span>';
+                        
+                        listDiv.innerHTML += `
+                            <div class="menu-item">
+                                <div class="menu-item-info">
+                                    <div class="menu-item-name">${item.name} ${vegBadge} ${availBadge}</div>
+                                    <div class="menu-item-price">₹${item.price}</div>
+                                    <div class="menu-item-desc">${item.description || ''}</div>
+                                    <small style="color: #6c757d;">ID: ${item.id} | Category: ${item.category}</small>
+                                </div>
+                                <div>
+                                    <button onclick="document.getElementById('update-item-id').value='${item.id}'">Edit</button>
+                                </div>
+                            </div>
+                        `;
+                    });
+                } else {
+                    listDiv.innerHTML = '<p style="color: #6c757d; margin-top: 10px;">No menu items yet. Add some!</p>';
+                }
+            } catch (error) {
+                displayResponse('my-menu-response', { error: error.message }, true);
+            }
+        }
+
+        async function updateMenuItem() {
+            const token = document.getElementById('restaurant-token').value;
+            const itemId = document.getElementById('update-item-id').value;
+            if (!token || !itemId) {
+                alert('Please provide token and item ID');
+                return;
+            }
+
+            const body = {};
+            const name = document.getElementById('update-name').value;
+            const price = document.getElementById('update-price').value;
+            const available = document.getElementById('update-available').value;
+
+            if (name) body.name = name;
+            if (price) body.price = parseFloat(price);
+            if (available) body.is_available = available === 'true';
+
+            try {
+                const response = await fetch(`${API_BASE}/menu/${itemId}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify(body)
+                });
+                const data = await response.json();
+                displayResponse('update-menu-response', data, !response.ok);
+                if (data.status === 'success') {
+                    alert('✅ Item updated! Click "Get My Menu" to see changes.');
+                }
+            } catch (error) {
+                displayResponse('update-menu-response', { error: error.message }, true);
+            }
+        }
+
+        async function toggleAvailability() {
+            const token = document.getElementById('restaurant-token').value;
+            const itemId = document.getElementById('toggle-item-id').value;
+            if (!token || !itemId) {
+                alert('Please provide token and item ID');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE}/menu/${itemId}/toggle-availability`, {
+                    method: 'PATCH',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await response.json();
+                displayResponse('toggle-response', data, !response.ok);
+                if (data.status === 'success') {
+                    alert(`✅ ${data.message}`);
+                }
+            } catch (error) {
+                displayResponse('toggle-response', { error: error.message }, true);
+            }
+        }
+
+        async function deleteMenuItem() {
+            const token = document.getElementById('restaurant-token').value;
+            const itemId = document.getElementById('delete-item-id').value;
+            if (!token || !itemId) {
+                alert('Please provide token and item ID');
+                return;
+            }
+
+            if (!confirm('Are you sure you want to delete this item?')) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE}/menu/${itemId}`, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await response.json();
+                displayResponse('delete-response', data, !response.ok);
+                if (data.status === 'success') {
+                    alert('✅ Item deleted!');
+                }
+            } catch (error) {
+                displayResponse('delete-response', { error: error.message }, true);
+            }
+        }
+    </script>
+</body>
+</html>
