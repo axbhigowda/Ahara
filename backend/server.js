@@ -34,6 +34,7 @@ const orderRoutes = require('./routes/orderRoutes');
 const addressRoutes = require('./routes/addressRoutes');
 const adminRoutes = require('./routes/adminRoutes');
 const deliveryRoutes = require('./routes/deliveryRoutes');
+const reviewRoutes = require('./routes/reviewRoutes');
 
 // API Routes
 app.get('/api', (req, res) => {
@@ -61,6 +62,7 @@ app.use('/api/orders', orderRoutes);
 app.use('/api/addresses', addressRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/delivery', deliveryRoutes);
+app.use('/api/reviews', reviewRoutes);
 
 // Test database connection endpoint
 app.get('/api/test-db', async (req, res) => {

@@ -127,10 +127,37 @@ const menuItemValidation = [
   validate
 ];
 
+/**
+ * Validation rules for review submission
+ */
+const reviewValidation = [
+  body('order_id')
+    .notEmpty().withMessage('Order ID is required'),
+  
+  body('restaurant_rating')
+    .notEmpty().withMessage('Restaurant rating is required')
+    .isInt({ min: 1, max: 5 }).withMessage('Rating must be between 1 and 5'),
+  
+  body('restaurant_review')
+    .optional()
+    .trim(),
+  
+  body('delivery_rating')
+    .optional()
+    .isInt({ min: 1, max: 5 }).withMessage('Delivery rating must be between 1 and 5'),
+  
+  body('delivery_review')
+    .optional()
+    .trim(),
+  
+  validate
+];
+
 module.exports = {
   signupValidation,
   loginValidation,
   restaurantSignupValidation,
   menuItemValidation,
+  reviewValidation,
   validate
 };
