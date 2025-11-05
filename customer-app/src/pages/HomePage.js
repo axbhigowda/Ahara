@@ -1,184 +1,173 @@
-// src/pages/HomePage.js - Main landing page
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
 import {
   Container,
   Grid,
-  Card,
-  CardContent,
-  CardMedia,
-  CardActionArea,
   Typography,
-  TextField,
   Box,
-  Chip,
-  Rating,
+  TextField,
+  InputAdornment,
   CircularProgress,
   Alert,
+  Tabs,
+  Tab,
+  Chip
 } from '@mui/material';
-import { Restaurant, AccessTime, Star } from '@mui/icons-material';
-import { restaurantAPI } from '../services/api';
+import {
+  Search as SearchIcon,
+  Restaurant as RestaurantIcon
+} from '@mui/icons-material';
+import RestaurantCard from '../components/RestaurantCard';
+import api from '../services/api';
 
-const HomePage = () => {
+function HomePage() {
   const [restaurants, setRestaurants] = useState([]);
+  const [filteredRestaurants, setFilteredRestaurants] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [searchTerm, setSearchTerm] = useState('');
-  const navigate = useNavigate();
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedCuisine, setSelectedCuisine] = useState('all');
 
   useEffect(() => {
     fetchRestaurants();
   }, []);
 
-  const fetchRestaurants = async (search = '') => {
+  useEffect(() => {
+    filterRestaurants();
+  }, [searchQuery, selectedCuisine, restaurants]);
+
+  const fetchRestaurants = async () => {
     try {
       setLoading(true);
-      const params = search ? { search } : {};
-      const response = await restaurantAPI.getAll(params);
-      setRestaurants(response.data.data);
-      setError('');
+      const response = await api.get('/restaurants');
+      setRestaurants(response.data.restaurants || []);
+      setFilteredRestaurants(response.data.restaurants || []);
     } catch (err) {
-      setError('Failed to load restaurants');
+      setError('Failed to load restaurants. Please try again later.');
       console.error(err);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleSearch = (e) => {
-    const value = e.target.value;
-    setSearchTerm(value);
-    
-    // Debounce search
-    const timer = setTimeout(() => {
-      fetchRestaurants(value);
-    }, 500);
-    
-    return () => clearTimeout(timer);
+  const filterRestaurants = () => {
+    let filtered = restaurants;
+
+    // Filter by search query
+    if (searchQuery) {
+      filtered = filtered.filter(restaurant =>
+        restaurant.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        restaurant.cuisine?.some(c => c.toLowerCase().includes(searchQuery.toLowerCase()))
+      );
+    }
+
+    // Filter by cuisine
+    if (selectedCuisine !== 'all') {
+      filtered = filtered.filter(restaurant =>
+        restaurant.cuisine?.includes(selectedCuisine)
+      );
+    }
+
+    setFilteredRestaurants(filtered);
   };
 
-  const handleRestaurantClick = (id) => {
-    navigate(`/restaurant/${id}`);
-  };
+  // Get unique cuisines
+  const cuisines = ['all', ...new Set(restaurants.flatMap(r => r.cuisine || []))];
+
+  if (loading) {
+    return (
+      <Box display="flex" justifyContent="center" alignItems="center" minHeight="80vh">
+        <CircularProgress />
+      </Box>
+    );
+  }
 
   return (
-    <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
+    <Container sx={{ mt: 4, mb: 4 }}>
       {/* Hero Section */}
-      <Box sx={{ textAlign: 'center', mb: 4 }}>
-        <Typography variant="h3" component="h1" gutterBottom fontWeight="bold">
-          Order Food from Your Favorite Restaurants
+      <Box textAlign="center" mb={4}>
+        <Typography variant="h3" gutterBottom fontWeight="bold">
+          Welcome to Ahara 🍽️
         </Typography>
         <Typography variant="h6" color="text.secondary" gutterBottom>
-          Fast delivery • Fresh food • Best prices
+          Order food from the best restaurants near you
         </Typography>
-        
+
         {/* Search Bar */}
-        <Box sx={{ mt: 3, maxWidth: 600, mx: 'auto' }}>
-          <TextField
-            fullWidth
-            placeholder="Search for restaurants..."
-            value={searchTerm}
-            onChange={handleSearch}
-            variant="outlined"
-          />
-        </Box>
+        <TextField
+          fullWidth
+          placeholder="Search for restaurants or cuisines..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          sx={{ mt: 3, maxWidth: 600, mx: 'auto' }}
+          InputProps={{
+            startAdornment: (
+              <InputAdornment position="start">
+                <SearchIcon />
+              </InputAdornment>
+            )
+          }}
+        />
       </Box>
 
-      {/* Loading State */}
-      {loading && (
-        <Box sx={{ display: 'flex', justifyContent: 'center', my: 4 }}>
-          <CircularProgress />
+      {/* Cuisine Filter Tabs */}
+      {cuisines.length > 1 && (
+        <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}>
+          <Tabs
+            value={selectedCuisine}
+            onChange={(e, newValue) => setSelectedCuisine(newValue)}
+            variant="scrollable"
+            scrollButtons="auto"
+          >
+            {cuisines.map(cuisine => (
+              <Tab
+                key={cuisine}
+                label={cuisine === 'all' ? 'All' : cuisine}
+                value={cuisine}
+              />
+            ))}
+          </Tabs>
         </Box>
       )}
 
-      {/* Error State */}
+      {/* Results Info */}
+      <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
+        <Typography variant="h6">
+          {filteredRestaurants.length === 0 ? 'No restaurants found' : `${filteredRestaurants.length} Restaurants`}
+        </Typography>
+        <Chip
+          label={`${restaurants.filter(r => r.isOpen).length} Open Now`}
+          color="success"
+          size="small"
+        />
+      </Box>
+
       {error && (
-        <Alert severity="error" sx={{ mb: 3 }}>
+        <Alert severity="error" sx={{ mb: 2 }}>
           {error}
         </Alert>
       )}
 
       {/* Restaurants Grid */}
-      {!loading && restaurants.length > 0 && (
-        <>
-          <Typography variant="h5" gutterBottom sx={{ mt: 4, mb: 2 }}>
-            All Restaurants ({restaurants.length})
-          </Typography>
-          <Grid container spacing={3}>
-            {restaurants.map((restaurant) => (
-              <Grid item xs={12} sm={6} md={4} key={restaurant.id}>
-                <Card 
-                  sx={{ 
-                    height: '100%',
-                    '&:hover': { 
-                      transform: 'scale(1.02)',
-                      transition: 'transform 0.2s',
-                      boxShadow: 6,
-                    }
-                  }}
-                >
-                  <CardActionArea onClick={() => handleRestaurantClick(restaurant.id)}>
-                    <CardMedia
-                      component="img"
-                      height="200"
-                      image={restaurant.image_url || 'https://via.placeholder.com/400x200?text=Restaurant'}
-                      alt={restaurant.name}
-                    />
-                    <CardContent>
-                      <Typography variant="h6" component="div" gutterBottom>
-                        {restaurant.name}
-                      </Typography>
-                      
-                      <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-                        <Star sx={{ color: '#ffc107', mr: 0.5 }} fontSize="small" />
-                        <Typography variant="body2" color="text.secondary">
-                          {restaurant.rating} ({restaurant.total_ratings} ratings)
-                        </Typography>
-                      </Box>
-
-                      <Box sx={{ display: 'flex', gap: 1, mb: 1 }}>
-                        <Chip 
-                          label={restaurant.cuisine_type} 
-                          size="small" 
-                          color="primary" 
-                          variant="outlined"
-                        />
-                        <Chip 
-                          label={restaurant.city} 
-                          size="small" 
-                          variant="outlined"
-                        />
-                      </Box>
-
-                      <Box sx={{ display: 'flex', alignItems: 'center', mt: 1 }}>
-                        <AccessTime fontSize="small" sx={{ mr: 0.5, color: 'text.secondary' }} />
-                        <Typography variant="body2" color="text.secondary">
-                          {restaurant.opening_time} - {restaurant.closing_time}
-                        </Typography>
-                      </Box>
-                    </CardContent>
-                  </CardActionArea>
-                </Card>
-              </Grid>
-            ))}
-          </Grid>
-        </>
-      )}
-
-      {/* No Results */}
-      {!loading && restaurants.length === 0 && (
-        <Box sx={{ textAlign: 'center', my: 8 }}>
-          <Restaurant sx={{ fontSize: 80, color: 'text.secondary', mb: 2 }} />
+      {filteredRestaurants.length === 0 ? (
+        <Box textAlign="center" mt={8}>
+          <RestaurantIcon sx={{ fontSize: 100, color: 'grey.400', mb: 2 }} />
           <Typography variant="h6" color="text.secondary">
-            No restaurants found
-          </Typography>
-          <Typography variant="body2" color="text.secondary">
-            Try searching for something else
+            {searchQuery || selectedCuisine !== 'all'
+              ? 'No restaurants match your search'
+              : 'No restaurants available at the moment'}
           </Typography>
         </Box>
+      ) : (
+        <Grid container spacing={3}>
+          {filteredRestaurants.map(restaurant => (
+            <Grid item xs={12} sm={6} md={4} key={restaurant._id}>
+              <RestaurantCard restaurant={restaurant} />
+            </Grid>
+          ))}
+        </Grid>
       )}
     </Container>
   );
-};
+}
 
 export default HomePage;
