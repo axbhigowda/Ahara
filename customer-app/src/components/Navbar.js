@@ -41,6 +41,9 @@ const Navbar = () => {
     navigate('/');
   };
 
+  // FIXED: Only show cart count when logged in
+  const cartCount = isAuthenticated ? getItemCount() : 0;
+
   return (
     <AppBar position="sticky">
       <Toolbar>
@@ -60,14 +63,14 @@ const Navbar = () => {
           Ahara
         </Typography>
 
-        {/* Cart Icon */}
+        {/* Cart Icon - FIXED: Only show badge when logged in */}
         <IconButton
           color="inherit"
           component={Link}
-          to="/cart"
+          to={isAuthenticated ? "/cart" : "/login"}
           sx={{ mr: 2 }}
         >
-          <Badge badgeContent={getItemCount()} color="secondary">
+          <Badge badgeContent={cartCount} color="secondary">
             <ShoppingCart />
           </Badge>
         </IconButton>
