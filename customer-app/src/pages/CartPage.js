@@ -29,7 +29,7 @@ function CartPage() {
   const [discount, setDiscount] = useState(0);
 
   // Calculate totals
-  const subtotal = cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+  const subtotal = (cartItems || []).reduce((sum, item) => sum + (item.price * item.quantity), 0);
   const deliveryFee = subtotal > 0 ? 40 : 0;
   const tax = subtotal * 0.05; // 5% tax
   const total = subtotal + deliveryFee + tax - discount;

@@ -17,18 +17,27 @@ import {
 function RestaurantCard({ restaurant }) {
   const navigate = useNavigate();
 
+  // Parse rating safely (convert string to number)
+  const rating = restaurant.rating ? parseFloat(restaurant.rating) : null;
+  
+  // Check if restaurant is open based on is_active field
+  const isOpen = restaurant.is_active;
+
+  // Use id or _id depending on what's available
+  const restaurantId = restaurant.id || restaurant._id;
+
   return (
     <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-      <CardActionArea onClick={() => navigate(`/restaurant/${restaurant._id}`)}>
+      <CardActionArea onClick={() => navigate(`/restaurant/${restaurantId}`)}>
         <Box sx={{ position: 'relative' }}>
           <CardMedia
             component="img"
             height="180"
-            image={restaurant.image || 'https://via.placeholder.com/400x180?text=Restaurant'}
+            image={restaurant.image_url || 'https://via.placeholder.com/400x180?text=Restaurant'}
             alt={restaurant.name}
             sx={{ objectFit: 'cover' }}
           />
-          {!restaurant.isOpen && (
+          {!isOpen && (
             <Box
               sx={{
                 position: 'absolute',
@@ -47,7 +56,7 @@ function RestaurantCard({ restaurant }) {
               </Typography>
             </Box>
           )}
-          {restaurant.isOpen && (
+          {isOpen && (
             <Chip
               label="Open"
               color="success"
@@ -67,27 +76,27 @@ function RestaurantCard({ restaurant }) {
           </Typography>
 
           <Typography variant="body2" color="text.secondary" gutterBottom noWrap>
-            {restaurant.cuisine?.join(', ')}
+            {restaurant.cuisine_type || 'Various Cuisines'}
           </Typography>
 
           <Box display="flex" gap={1} mt={2} flexWrap="wrap">
             <Chip
               icon={<StarIcon />}
-              label={`${restaurant.rating?.toFixed(1) || 'New'}`}
+              label={rating ? rating.toFixed(1) : 'New'}
               size="small"
               color="primary"
               variant="outlined"
             />
             <Chip
               icon={<TimeIcon />}
-              label={`${restaurant.deliveryTime || '30-40'} min`}
+              label={`${restaurant.delivery_time || '30-40'} min`}
               size="small"
               variant="outlined"
             />
-            {restaurant.minOrder && (
+            {restaurant.min_order && (
               <Chip
                 icon={<OfferIcon />}
-                label={`₹${restaurant.minOrder} min`}
+                label={`₹${restaurant.min_order} min`}
                 size="small"
                 variant="outlined"
               />

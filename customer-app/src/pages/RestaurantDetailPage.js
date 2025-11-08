@@ -16,7 +16,6 @@ import {
   DialogContent,
   DialogActions,
   TextField,
-  Rating,
   Divider,
   Alert,
   CircularProgress
@@ -24,7 +23,6 @@ import {
 import {
   Add as AddIcon,
   Remove as RemoveIcon,
-  Restaurant as RestaurantIcon,
   AccessTime as TimeIcon,
   LocalOffer as OfferIcon,
   Star as StarIcon
@@ -53,10 +51,13 @@ function RestaurantDetailPage() {
   const fetchRestaurantDetails = async () => {
     try {
       const response = await api.get(`/restaurants/${id}`);
-      setRestaurant(response.data.restaurant);
+      console.log('Restaurant response:', response.data); // Debug log
+      
+      // FIXED: Changed from response.data.restaurant to response.data.data
+      setRestaurant(response.data.data || response.data.restaurant);
     } catch (err) {
       setError('Failed to load restaurant details');
-      console.error(err);
+      console.error('Error fetching restaurant:', err);
     }
   };
 
@@ -64,10 +65,13 @@ function RestaurantDetailPage() {
     try {
       setLoading(true);
       const response = await api.get(`/menu/restaurant/${id}`);
-      setMenuItems(response.data.menuItems);
+      console.log('Menu response:', response.data); // Debug log
+      
+      // Handle both possible response formats
+      setMenuItems(response.data.menuItems || response.data.data || []);
     } catch (err) {
       setError('Failed to load menu');
-      console.error(err);
+      console.error('Error fetching menu:', err);
     } finally {
       setLoading(false);
     }
@@ -80,19 +84,25 @@ function RestaurantDetailPage() {
   };
 
   const handleConfirmAdd = () => {
-    addToCart({
+    const success = addToCart({
       ...selectedItem,
       quantity: itemQuantity,
       customization,
       restaurantId: id,
       restaurantName: restaurant.name
+    }, {
+      id: id,
+      name: restaurant.name
     });
-    setSelectedItem(null);
-    alert('Item added to cart!');
+    
+    if (success !== false) {
+      setSelectedItem(null);
+      alert('Item added to cart!');
+    }
   };
 
   const getItemQuantityInCart = (itemId) => {
-    const cartItem = cartItems.find(item => item._id === itemId);
+    const cartItem = (cartItems || []).find(item => item.id === itemId || item._id === itemId);
     return cartItem ? cartItem.quantity : 0;
   };
 
@@ -121,7 +131,7 @@ function RestaurantDetailPage() {
   }
 
   // Group menu items by category
-  const groupedMenu = menuItems.reduce((acc, item) => {
+  const groupedMenu = (menuItems || []).reduce((acc, item) => {
     const category = item.category || 'Other';
     if (!acc[category]) {
       acc[category] = [];
@@ -130,16 +140,20 @@ function RestaurantDetailPage() {
     return acc;
   }, {});
 
+  // Parse rating safely
+  const rating = restaurant.rating ? parseFloat(restaurant.rating) : null;
+  const isOpen = restaurant.is_active !== undefined ? restaurant.is_active : restaurant.isOpen;
+
   return (
     <Container sx={{ mt: 4, mb: 4 }}>
       {/* Restaurant Header */}
       <Card sx={{ mb: 4 }}>
         <Box sx={{ position: 'relative', height: 200, bgcolor: 'primary.main' }}>
-          {restaurant.image && (
+          {restaurant.image_url && (
             <CardMedia
               component="img"
               height="200"
-              image={restaurant.image}
+              image={restaurant.image_url}
               alt={restaurant.name}
               sx={{ objectFit: 'cover' }}
             />
@@ -152,7 +166,7 @@ function RestaurantDetailPage() {
                 {restaurant.name}
               </Typography>
               <Typography variant="body1" color="text.secondary" gutterBottom>
-                {restaurant.cuisine?.join(', ')}
+                {restaurant.cuisine_type || restaurant.cuisine?.join(', ') || 'Various Cuisines'}
               </Typography>
               <Typography variant="body2" color="text.secondary" gutterBottom>
                 📍 {restaurant.address}
@@ -160,27 +174,27 @@ function RestaurantDetailPage() {
               <Box display="flex" gap={2} mt={2}>
                 <Chip
                   icon={<StarIcon />}
-                  label={`${restaurant.rating?.toFixed(1) || 'New'} ⭐`}
+                  label={`${rating ? rating.toFixed(1) : 'New'} ⭐`}
                   color="primary"
                   size="small"
                 />
                 <Chip
                   icon={<TimeIcon />}
-                  label={`${restaurant.deliveryTime || '30-40'} mins`}
+                  label={`${restaurant.delivery_time || restaurant.deliveryTime || '30-40'} mins`}
                   size="small"
                 />
                 <Chip
                   icon={<OfferIcon />}
-                  label={`₹${restaurant.minOrder || 0} min order`}
+                  label={`₹${restaurant.min_order || restaurant.minOrder || 0} min order`}
                   size="small"
                 />
               </Box>
             </Grid>
             <Grid item xs={12} md={4} textAlign="right">
-              <Typography variant="h6" color={restaurant.isOpen ? 'success.main' : 'error.main'}>
-                {restaurant.isOpen ? '🟢 Open Now' : '🔴 Closed'}
+              <Typography variant="h6" color={isOpen ? 'success.main' : 'error.main'}>
+                {isOpen ? '🟢 Open Now' : '🔴 Closed'}
               </Typography>
-              {cartItems.length > 0 && (
+              {cartItems && cartItems.length > 0 && (
                 <Button
                   variant="contained"
                   color="primary"
@@ -197,88 +211,98 @@ function RestaurantDetailPage() {
       </Card>
 
       {/* Menu Items by Category */}
-      {Object.keys(groupedMenu).map((category) => (
-        <Box key={category} sx={{ mb: 4 }}>
-          <Typography variant="h5" gutterBottom sx={{ mb: 2, fontWeight: 'bold' }}>
-            {category}
-          </Typography>
-          <Divider sx={{ mb: 2 }} />
-          <Grid container spacing={2}>
-            {groupedMenu[category].map((item) => (
-              <Grid item xs={12} sm={6} md={4} key={item._id}>
-                <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-                  {item.image && (
-                    <CardMedia
-                      component="img"
-                      height="140"
-                      image={item.image}
-                      alt={item.name}
-                      sx={{ objectFit: 'cover' }}
-                    />
-                  )}
-                  <CardContent sx={{ flexGrow: 1 }}>
-                    <Box display="flex" justifyContent="space-between" alignItems="start">
-                      <Typography variant="h6" component="div">
-                        {item.name}
-                      </Typography>
-                      {item.isVeg !== undefined && (
-                        <Box
-                          sx={{
-                            width: 16,
-                            height: 16,
-                            border: 2,
-                            borderColor: item.isVeg ? 'success.main' : 'error.main',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center'
-                          }}
-                        >
-                          <Box
-                            sx={{
-                              width: 8,
-                              height: 8,
-                              borderRadius: '50%',
-                              bgcolor: item.isVeg ? 'success.main' : 'error.main'
-                            }}
-                          />
+      {Object.keys(groupedMenu).length === 0 ? (
+        <Alert severity="info">No menu items available for this restaurant.</Alert>
+      ) : (
+        Object.keys(groupedMenu).map((category) => (
+          <Box key={category} sx={{ mb: 4 }}>
+            <Typography variant="h5" gutterBottom sx={{ mb: 2, fontWeight: 'bold' }}>
+              {category}
+            </Typography>
+            <Divider sx={{ mb: 2 }} />
+            <Grid container spacing={2}>
+              {groupedMenu[category].map((item) => {
+                const itemId = item.id || item._id;
+                const itemIsAvailable = item.is_available !== undefined ? item.is_available : item.isAvailable;
+                const itemIsVeg = item.is_veg !== undefined ? item.is_veg : item.isVeg;
+                
+                return (
+                  <Grid item xs={12} sm={6} md={4} key={itemId}>
+                    <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+                      {item.image_url && (
+                        <CardMedia
+                          component="img"
+                          height="140"
+                          image={item.image_url}
+                          alt={item.name}
+                          sx={{ objectFit: 'cover' }}
+                        />
+                      )}
+                      <CardContent sx={{ flexGrow: 1 }}>
+                        <Box display="flex" justifyContent="space-between" alignItems="start">
+                          <Typography variant="h6" component="div">
+                            {item.name}
+                          </Typography>
+                          {itemIsVeg !== undefined && (
+                            <Box
+                              sx={{
+                                width: 16,
+                                height: 16,
+                                border: 2,
+                                borderColor: itemIsVeg ? 'success.main' : 'error.main',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center'
+                              }}
+                            >
+                              <Box
+                                sx={{
+                                  width: 8,
+                                  height: 8,
+                                  borderRadius: '50%',
+                                  bgcolor: itemIsVeg ? 'success.main' : 'error.main'
+                                }}
+                              />
+                            </Box>
+                          )}
                         </Box>
-                      )}
-                    </Box>
-                    <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-                      {item.description}
-                    </Typography>
-                    <Box display="flex" justifyContent="space-between" alignItems="center" mt={2}>
-                      <Typography variant="h6" color="primary">
-                        ₹{item.price}
-                      </Typography>
-                      {item.isAvailable ? (
-                        getItemQuantityInCart(item._id) > 0 ? (
-                          <Chip
-                            label={`${getItemQuantityInCart(item._id)} in cart`}
-                            color="success"
-                            size="small"
-                          />
-                        ) : (
-                          <Button
-                            variant="contained"
-                            size="small"
-                            startIcon={<AddIcon />}
-                            onClick={() => handleAddToCart(item)}
-                          >
-                            Add
-                          </Button>
-                        )
-                      ) : (
-                        <Chip label="Not Available" size="small" color="error" />
-                      )}
-                    </Box>
-                  </CardContent>
-                </Card>
-              </Grid>
-            ))}
-          </Grid>
-        </Box>
-      ))}
+                        <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                          {item.description}
+                        </Typography>
+                        <Box display="flex" justifyContent="space-between" alignItems="center" mt={2}>
+                          <Typography variant="h6" color="primary">
+                            ₹{item.price}
+                          </Typography>
+                          {itemIsAvailable ? (
+                            getItemQuantityInCart(itemId) > 0 ? (
+                              <Chip
+                                label={`${getItemQuantityInCart(itemId)} in cart`}
+                                color="success"
+                                size="small"
+                              />
+                            ) : (
+                              <Button
+                                variant="contained"
+                                size="small"
+                                startIcon={<AddIcon />}
+                                onClick={() => handleAddToCart(item)}
+                              >
+                                Add
+                              </Button>
+                            )
+                          ) : (
+                            <Chip label="Not Available" size="small" color="error" />
+                          )}
+                        </Box>
+                      </CardContent>
+                    </Card>
+                  </Grid>
+                );
+              })}
+            </Grid>
+          </Box>
+        ))
+      )}
 
       {/* Add to Cart Dialog */}
       <Dialog open={Boolean(selectedItem)} onClose={() => setSelectedItem(null)} maxWidth="sm" fullWidth>

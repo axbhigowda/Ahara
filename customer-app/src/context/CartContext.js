@@ -111,7 +111,8 @@ export const CartProvider = ({ children }) => {
   };
 
   const value = {
-    cart,
+    cartItems: cart,  // ← CHANGED: Export as 'cartItems' instead of 'cart'
+    cart,             // ← ADDED: Keep 'cart' for backward compatibility
     restaurant,
     addToCart,
     removeFromCart,

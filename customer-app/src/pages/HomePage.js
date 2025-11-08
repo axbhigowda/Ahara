@@ -39,11 +39,16 @@ function HomePage() {
     try {
       setLoading(true);
       const response = await api.get('/restaurants');
-      setRestaurants(response.data.restaurants || []);
-      setFilteredRestaurants(response.data.restaurants || []);
+      
+      // FIXED: Changed from response.data.restaurants to response.data.data
+      const restaurantData = response.data.data || [];
+      console.log('Fetched restaurants:', restaurantData); // Debug log
+      
+      setRestaurants(restaurantData);
+      setFilteredRestaurants(restaurantData);
     } catch (err) {
       setError('Failed to load restaurants. Please try again later.');
-      console.error(err);
+      console.error('Error fetching restaurants:', err);
     } finally {
       setLoading(false);
     }
@@ -56,22 +61,22 @@ function HomePage() {
     if (searchQuery) {
       filtered = filtered.filter(restaurant =>
         restaurant.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        restaurant.cuisine?.some(c => c.toLowerCase().includes(searchQuery.toLowerCase()))
+        restaurant.cuisine_type?.toLowerCase().includes(searchQuery.toLowerCase())
       );
     }
 
     // Filter by cuisine
     if (selectedCuisine !== 'all') {
       filtered = filtered.filter(restaurant =>
-        restaurant.cuisine?.includes(selectedCuisine)
+        restaurant.cuisine_type?.toLowerCase() === selectedCuisine.toLowerCase()
       );
     }
 
     setFilteredRestaurants(filtered);
   };
 
-  // Get unique cuisines
-  const cuisines = ['all', ...new Set(restaurants.flatMap(r => r.cuisine || []))];
+  // Get unique cuisines - FIXED: Changed from cuisine to cuisine_type
+  const cuisines = ['all', ...new Set(restaurants.map(r => r.cuisine_type).filter(Boolean))];
 
   if (loading) {
     return (
@@ -135,7 +140,7 @@ function HomePage() {
           {filteredRestaurants.length === 0 ? 'No restaurants found' : `${filteredRestaurants.length} Restaurants`}
         </Typography>
         <Chip
-          label={`${restaurants.filter(r => r.isOpen).length} Open Now`}
+          label={`${restaurants.filter(r => r.is_active).length} Open Now`}
           color="success"
           size="small"
         />
@@ -160,7 +165,7 @@ function HomePage() {
       ) : (
         <Grid container spacing={3}>
           {filteredRestaurants.map(restaurant => (
-            <Grid item xs={12} sm={6} md={4} key={restaurant._id}>
+            <Grid item xs={12} sm={6} md={4} key={restaurant.id || restaurant._id}>
               <RestaurantCard restaurant={restaurant} />
             </Grid>
           ))}
