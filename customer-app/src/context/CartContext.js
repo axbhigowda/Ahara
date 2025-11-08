@@ -21,10 +21,20 @@ export const CartProvider = ({ children }) => {
     const savedRestaurant = localStorage.getItem('cartRestaurant');
     
     if (savedCart) {
-      setCart(JSON.parse(savedCart));
+      try {
+        setCart(JSON.parse(savedCart));
+      } catch (e) {
+        console.error('Error loading cart:', e);
+        setCart([]);
+      }
     }
     if (savedRestaurant) {
-      setRestaurant(JSON.parse(savedRestaurant));
+      try {
+        setRestaurant(JSON.parse(savedRestaurant));
+      } catch (e) {
+        console.error('Error loading restaurant:', e);
+        setRestaurant(null);
+      }
     }
   }, []);
 
@@ -51,28 +61,43 @@ export const CartProvider = ({ children }) => {
       setRestaurant(restaurantInfo);
     }
 
+    // Use both id and _id for compatibility
+    const itemId = item.id || item._id;
+    
     // Check if item already in cart
-    const existingItem = cart.find((cartItem) => cartItem.id === item.id);
+    const existingItem = cart.find((cartItem) => {
+      const cartItemId = cartItem.id || cartItem._id;
+      return cartItemId === itemId;
+    });
     
     if (existingItem) {
-      // Increase quantity
+      // Increase quantity - use the item's quantity field
       setCart(
-        cart.map((cartItem) =>
-          cartItem.id === item.id
-            ? { ...cartItem, quantity: cartItem.quantity + 1 }
-            : cartItem
-        )
+        cart.map((cartItem) => {
+          const cartItemId = cartItem.id || cartItem._id;
+          return cartItemId === itemId
+            ? { ...cartItem, quantity: (cartItem.quantity || 1) + (item.quantity || 1) }
+            : cartItem;
+        })
       );
     } else {
-      // Add new item
-      setCart([...cart, { ...item, quantity: 1 }]);
+      // Add new item with the specified quantity
+      setCart([...cart, { 
+        ...item, 
+        id: itemId,
+        _id: itemId,
+        quantity: item.quantity || 1 
+      }]);
     }
     
     return true;
   };
 
   const removeFromCart = (itemId) => {
-    const updatedCart = cart.filter((item) => item.id !== itemId);
+    const updatedCart = cart.filter((item) => {
+      const cartItemId = item.id || item._id;
+      return cartItemId !== itemId;
+    });
     setCart(updatedCart);
     
     // Clear restaurant if cart is empty
@@ -89,9 +114,10 @@ export const CartProvider = ({ children }) => {
     }
     
     setCart(
-      cart.map((item) =>
-        item.id === itemId ? { ...item, quantity } : item
-      )
+      cart.map((item) => {
+        const cartItemId = item.id || item._id;
+        return cartItemId === itemId ? { ...item, quantity } : item;
+      })
     );
   };
 
@@ -103,16 +129,16 @@ export const CartProvider = ({ children }) => {
   };
 
   const getCartTotal = () => {
-    return cart.reduce((total, item) => total + item.price * item.quantity, 0);
+    return cart.reduce((total, item) => total + (item.price || 0) * (item.quantity || 1), 0);
   };
 
   const getItemCount = () => {
-    return cart.reduce((count, item) => count + item.quantity, 0);
+    return cart.reduce((count, item) => count + (item.quantity || 1), 0);
   };
 
   const value = {
-    cartItems: cart,  // ← CHANGED: Export as 'cartItems' instead of 'cart'
-    cart,             // ← ADDED: Keep 'cart' for backward compatibility
+    cartItems: cart,
+    cart,
     restaurant,
     addToCart,
     removeFromCart,

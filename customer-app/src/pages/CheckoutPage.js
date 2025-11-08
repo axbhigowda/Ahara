@@ -21,7 +21,8 @@ import {
   TextField,
   Alert,
   CircularProgress,
-  Paper
+  Paper,
+  Checkbox
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -35,7 +36,7 @@ import api from '../services/api';
 function CheckoutPage() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { cartItems, clearCart } = useCart();
+  const { cartItems, clearCart, restaurant } = useCart();
   const { user } = useAuth();
 
   const [addresses, setAddresses] = useState([]);
@@ -45,15 +46,14 @@ function CheckoutPage() {
   const [showAddressDialog, setShowAddressDialog] = useState(false);
   const [error, setError] = useState('');
 
-  // New address form
+  // New address form - FIXED to match backend schema
   const [newAddress, setNewAddress] = useState({
-    type: 'Home',
-    street: '',
-    area: '',
+    address_line1: '',
+    address_line2: '',
     city: '',
     state: '',
     pincode: '',
-    landmark: ''
+    is_default: false
   });
 
   // Get discount from cart page
@@ -77,32 +77,56 @@ function CheckoutPage() {
   const fetchAddresses = async () => {
     try {
       const response = await api.get('/addresses');
-      setAddresses(response.data.addresses || []);
-      if (response.data.addresses?.length > 0) {
-        setSelectedAddress(response.data.addresses[0]._id);
+      console.log('Addresses response:', response.data);
+      
+      // Backend returns data in response.data.data
+      const addressList = response.data.data || [];
+      setAddresses(addressList);
+      
+      if (addressList.length > 0) {
+        // Select default address or first address
+        const defaultAddr = addressList.find(addr => addr.is_default);
+        setSelectedAddress(defaultAddr?.id || addressList[0].id);
       }
     } catch (err) {
       console.error('Error fetching addresses:', err);
+      if (err.response?.status !== 404) {
+        setError('Failed to load addresses');
+      }
     }
   };
 
   const handleAddAddress = async () => {
+    // Validate required fields
+    if (!newAddress.address_line1 || !newAddress.city || 
+        !newAddress.state || !newAddress.pincode) {
+      alert('Please fill in all required fields');
+      return;
+    }
+
     try {
+      console.log('Sending address:', newAddress);
+      
       const response = await api.post('/addresses', newAddress);
-      setAddresses([...addresses, response.data.address]);
-      setSelectedAddress(response.data.address._id);
+      console.log('Address added:', response.data);
+      
+      const savedAddress = response.data.data;
+      setAddresses([...addresses, savedAddress]);
+      setSelectedAddress(savedAddress.id);
+      
       setShowAddressDialog(false);
       setNewAddress({
-        type: 'Home',
-        street: '',
-        area: '',
+        address_line1: '',
+        address_line2: '',
         city: '',
         state: '',
         pincode: '',
-        landmark: ''
+        is_default: false
       });
+      
       alert('Address added successfully!');
     } catch (err) {
+      console.error('Add address error:', err);
       alert(err.response?.data?.message || 'Failed to add address');
     }
   };
@@ -132,12 +156,16 @@ function CheckoutPage() {
     setError('');
 
     try {
-      // Get restaurant ID from cart items
-      const restaurantId = cartItems[0].restaurantId;
+      // Get restaurant ID from cart items or restaurant context
+      const restaurantId = cartItems[0].restaurantId || restaurant?.id;
+
+      if (!restaurantId) {
+        throw new Error('Restaurant information not found');
+      }
 
       // Prepare order items
       const items = cartItems.map(item => ({
-        menuItem: item._id,
+        menuItem: item._id || item.id,
         quantity: item.quantity,
         price: item.price,
         customization: item.customization || ''
@@ -154,8 +182,9 @@ function CheckoutPage() {
         couponCode: couponCode
       };
 
-      const orderResponse = await api.post('/orders', orderData);
-      const order = orderResponse.data.order;
+      console.log('Creating order:', orderData);
+      const orderResponse = await api.post('/orders/create', orderData);
+      const order = orderResponse.data.order || orderResponse.data.data;
 
       if (paymentMethod === 'online') {
         // Razorpay payment
@@ -167,8 +196,8 @@ function CheckoutPage() {
         }
 
         // Create Razorpay order
-        const paymentResponse = await api.post('/orders/create-payment', {
-          orderId: order._id,
+        const paymentResponse = await api.post('/orders/payment/create', {
+          orderId: order.id,
           amount: total
         });
 
@@ -182,15 +211,15 @@ function CheckoutPage() {
           handler: async function (response) {
             try {
               // Verify payment
-              await api.post('/orders/verify-payment', {
-                orderId: order._id,
+              await api.post('/orders/payment/verify', {
+                orderId: order.id,
                 razorpayOrderId: response.razorpay_order_id,
                 razorpayPaymentId: response.razorpay_payment_id,
                 razorpaySignature: response.razorpay_signature
               });
 
               clearCart();
-              navigate(`/orders/${order._id}`, { 
+              navigate(`/orders/${order.id}`, { 
                 state: { message: 'Order placed successfully!' }
               });
             } catch (err) {
@@ -199,9 +228,9 @@ function CheckoutPage() {
             }
           },
           prefill: {
-            name: user.name,
-            email: user.email,
-            contact: user.phone
+            name: user?.name || '',
+            email: user?.email || '',
+            contact: user?.phone || ''
           },
           theme: {
             color: '#1976d2'
@@ -213,13 +242,13 @@ function CheckoutPage() {
       } else {
         // Cash on Delivery
         clearCart();
-        navigate(`/orders/${order._id}`, {
+        navigate(`/orders/${order.id}`, {
           state: { message: 'Order placed successfully! Pay on delivery.' }
         });
       }
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to place order');
-      console.error(err);
+      setError(err.response?.data?.message || err.message || 'Failed to place order');
+      console.error('Order error:', err);
     } finally {
       setLoading(false);
     }
@@ -260,34 +289,36 @@ function CheckoutPage() {
                 >
                   {addresses.map((address) => (
                     <Card
-                      key={address._id}
+                      key={address.id}
                       variant="outlined"
                       sx={{
                         mb: 1,
-                        border: selectedAddress === address._id ? 2 : 1,
-                        borderColor: selectedAddress === address._id ? 'primary.main' : 'grey.300'
+                        border: selectedAddress === address.id ? 2 : 1,
+                        borderColor: selectedAddress === address.id ? 'primary.main' : 'grey.300'
                       }}
                     >
                       <CardContent>
                         <FormControlLabel
-                          value={address._id}
+                          value={address.id}
                           control={<Radio />}
                           label={
                             <Box>
-                              <Typography variant="body1" fontWeight="bold">
-                                {address.type}
-                              </Typography>
+                              {address.is_default && (
+                                <Typography variant="caption" color="primary" fontWeight="bold">
+                                  DEFAULT
+                                </Typography>
+                              )}
                               <Typography variant="body2" color="text.secondary">
-                                {address.street}, {address.area}
+                                {address.address_line1}
                               </Typography>
+                              {address.address_line2 && (
+                                <Typography variant="body2" color="text.secondary">
+                                  {address.address_line2}
+                                </Typography>
+                              )}
                               <Typography variant="body2" color="text.secondary">
                                 {address.city}, {address.state} - {address.pincode}
                               </Typography>
-                              {address.landmark && (
-                                <Typography variant="caption" color="text.secondary">
-                                  Landmark: {address.landmark}
-                                </Typography>
-                              )}
                             </Box>
                           }
                         />
@@ -347,16 +378,19 @@ function CheckoutPage() {
 
             {/* Cart Items */}
             <Box sx={{ mb: 2, maxHeight: 200, overflowY: 'auto' }}>
-              {cartItems.map((item) => (
-                <Box key={item._id} display="flex" justifyContent="space-between" mb={1}>
-                  <Typography variant="body2">
-                    {item.name} x {item.quantity}
-                  </Typography>
-                  <Typography variant="body2">
-                    ₹{item.price * item.quantity}
-                  </Typography>
-                </Box>
-              ))}
+              {cartItems.map((item) => {
+                const itemId = item.id || item._id;
+                return (
+                  <Box key={itemId} display="flex" justifyContent="space-between" mb={1}>
+                    <Typography variant="body2">
+                      {item.name} x {item.quantity}
+                    </Typography>
+                    <Typography variant="body2">
+                      ₹{item.price * item.quantity}
+                    </Typography>
+                  </Box>
+                );
+              })}
             </Box>
 
             <Divider sx={{ mb: 2 }} />
@@ -405,7 +439,7 @@ function CheckoutPage() {
         </Grid>
       </Grid>
 
-      {/* Add Address Dialog */}
+      {/* Add Address Dialog - FIXED to match backend schema */}
       <Dialog
         open={showAddressDialog}
         onClose={() => setShowAddressDialog(false)}
@@ -414,35 +448,23 @@ function CheckoutPage() {
       >
         <DialogTitle>Add New Address</DialogTitle>
         <DialogContent>
-          <FormControl component="fieldset" sx={{ mb: 2, mt: 1 }}>
-            <FormLabel>Address Type</FormLabel>
-            <RadioGroup
-              row
-              value={newAddress.type}
-              onChange={(e) => setNewAddress({ ...newAddress, type: e.target.value })}
-            >
-              <FormControlLabel value="Home" control={<Radio />} label="Home" />
-              <FormControlLabel value="Work" control={<Radio />} label="Work" />
-              <FormControlLabel value="Other" control={<Radio />} label="Other" />
-            </RadioGroup>
-          </FormControl>
-
           <TextField
             fullWidth
-            label="Street Address"
-            value={newAddress.street}
-            onChange={(e) => setNewAddress({ ...newAddress, street: e.target.value })}
-            sx={{ mb: 2 }}
+            label="Address Line 1"
+            value={newAddress.address_line1}
+            onChange={(e) => setNewAddress({ ...newAddress, address_line1: e.target.value })}
+            placeholder="Street, House No, Building Name"
+            sx={{ mt: 2, mb: 2 }}
             required
           />
 
           <TextField
             fullWidth
-            label="Area/Locality"
-            value={newAddress.area}
-            onChange={(e) => setNewAddress({ ...newAddress, area: e.target.value })}
+            label="Address Line 2 (Optional)"
+            value={newAddress.address_line2}
+            onChange={(e) => setNewAddress({ ...newAddress, address_line2: e.target.value })}
+            placeholder="Area, Locality, Landmark"
             sx={{ mb: 2 }}
-            required
           />
 
           <Grid container spacing={2}>
@@ -475,11 +497,14 @@ function CheckoutPage() {
             required
           />
 
-          <TextField
-            fullWidth
-            label="Landmark (Optional)"
-            value={newAddress.landmark}
-            onChange={(e) => setNewAddress({ ...newAddress, landmark: e.target.value })}
+          <FormControlLabel
+            control={
+              <Checkbox
+                checked={newAddress.is_default}
+                onChange={(e) => setNewAddress({ ...newAddress, is_default: e.target.checked })}
+              />
+            }
+            label="Set as default address"
           />
         </DialogContent>
         <DialogActions>
